@@ -1,0 +1,2623 @@
+GAS LISTING /tmp/cci2iscS.s 			page 1
+
+
+   1              		.file	"ubsan.c"
+   2              		.option nopic
+   3              		.option norelax
+   4              		.text
+   5              	.Ltext0:
+   6              		.cfi_sections	.debug_frame
+   7              		.section	.rodata.str1.8,"aMS",@progbits,1
+   8              		.align	3
+   9              	.LC0:
+  10 0000 66696C65 		.string	"filename = "
+  10      6E616D65 
+  10      203D2000 
+  11 000c 00000000 		.align	3
+  12              	.LC1:
+  13 0010 3B206C69 		.string	"; line = "
+  13      6E65203D 
+  13      2000
+  14 001a 00000000 		.align	3
+  14      0000
+  15              	.LC2:
+  16 0020 3B20636F 		.string	"; column = "
+  16      6C756D6E 
+  16      203D2000 
+  17 002c 00000000 		.align	3
+  18              	.LC3:
+  19 0030 3B207669 		.string	"; violation = "
+  19      6F6C6174 
+  19      696F6E20 
+  19      3D2000
+  20 003f 00       		.align	3
+  21              	.LC4:
+  22 0040 3B0A00   		.string	";\n"
+  23              		.text
+  24              		.align	2
+  26              	ubsan_abort:
+  27              	.LFB0:
+  28              		.file 1 "src/ubsan.c"
+   1:src/ubsan.c   **** /*
+   2:src/ubsan.c   ****  * Copyright (c) 2014, 2015 Jonas 'Sortie' Termansen.
+   3:src/ubsan.c   ****  *
+   4:src/ubsan.c   ****  * Permission to use, copy, modify, and distribute this software for any
+   5:src/ubsan.c   ****  * purpose with or without fee is hereby granted, provided that the above
+   6:src/ubsan.c   ****  * copyright notice and this permission notice appear in all copies.
+   7:src/ubsan.c   ****  *
+   8:src/ubsan.c   ****  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   9:src/ubsan.c   ****  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+  10:src/ubsan.c   ****  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+  11:src/ubsan.c   ****  * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+  12:src/ubsan.c   ****  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+  13:src/ubsan.c   ****  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+  14:src/ubsan.c   ****  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+  15:src/ubsan.c   ****  *
+  16:src/ubsan.c   ****  * ubsan/ubsan.c
+  17:src/ubsan.c   ****  * Undefined behavior sanitizer runtime support.
+  18:src/ubsan.c   ****  */
+  19:src/ubsan.c   **** 
+  20:src/ubsan.c   **** #include <stdint.h>
+GAS LISTING /tmp/cci2iscS.s 			page 2
+
+
+  21:src/ubsan.c   **** #include <stdbool.h>
+  22:src/ubsan.c   **** #include "../h/print.hpp"
+  23:src/ubsan.c   **** 
+  24:src/ubsan.c   **** struct ubsan_source_location {
+  25:src/ubsan.c   **** 	const char *filename;
+  26:src/ubsan.c   **** 	uint32_t line;
+  27:src/ubsan.c   **** 	uint32_t column;
+  28:src/ubsan.c   **** };
+  29:src/ubsan.c   **** 
+  30:src/ubsan.c   **** struct ubsan_type_descriptor {
+  31:src/ubsan.c   **** 	uint16_t type_kind;
+  32:src/ubsan.c   **** 	uint16_t type_info;
+  33:src/ubsan.c   **** 	char type_name[];
+  34:src/ubsan.c   **** };
+  35:src/ubsan.c   **** 
+  36:src/ubsan.c   **** typedef uintptr_t ubsan_value_handle_t;
+  37:src/ubsan.c   **** 
+  38:src/ubsan.c   **** static const struct ubsan_source_location unknown_location = {
+  39:src/ubsan.c   **** 	"<unknown file>",
+  40:src/ubsan.c   **** 	0,
+  41:src/ubsan.c   **** 	0,
+  42:src/ubsan.c   **** };
+  43:src/ubsan.c   **** 
+  44:src/ubsan.c   **** __attribute__((noreturn)) static void
+  45:src/ubsan.c   **** ubsan_abort(const struct ubsan_source_location *location, const char *violation)
+  46:src/ubsan.c   **** {
+  29              		.loc 1 46 1
+  30              		.cfi_startproc
+  31              	.LVL0:
+  32 0000 130101FE 		addi	sp,sp,-32
+  33              		.cfi_def_cfa_offset 32
+  34 0004 233C1100 		sd	ra,24(sp)
+  35 0008 23388100 		sd	s0,16(sp)
+  36 000c 23349100 		sd	s1,8(sp)
+  37 0010 23302101 		sd	s2,0(sp)
+  38              		.cfi_offset 1, -8
+  39              		.cfi_offset 8, -16
+  40              		.cfi_offset 9, -24
+  41              		.cfi_offset 18, -32
+  42 0014 13040102 		addi	s0,sp,32
+  43              		.cfi_def_cfa 8, 0
+  44 0018 13890500 		mv	s2,a1
+  47:src/ubsan.c   **** 	if (!location || !location->filename)
+  45              		.loc 1 47 2
+  46              		.loc 1 47 5 is_stmt 0
+  47 001c 630C0508 		beqz	a0,.L4
+  48 0020 93040500 		mv	s1,a0
+  49              		.loc 1 47 28 discriminator 1
+  50 0024 83370500 		ld	a5,0(a0)
+  51              		.loc 1 47 16 discriminator 1
+  52 0028 638C0708 		beqz	a5,.L7
+  53              	.L2:
+  54              	.LVL1:
+  48:src/ubsan.c   **** 		location = &unknown_location;
+  49:src/ubsan.c   **** 
+  50:src/ubsan.c   **** 	// printf("filename = %s; line = %d; column = %d; violation = %s;\n", location->filename, location
+  51:src/ubsan.c   **** 
+GAS LISTING /tmp/cci2iscS.s 			page 3
+
+
+  52:src/ubsan.c   **** 	printString("filename = ");
+  55              		.loc 1 52 2 is_stmt 1
+  56 002c 17050000 		lla	a0,.LC0
+  56      13050500 
+  57 0034 97000000 		call	printString
+  57      E7800000 
+  58              	.LVL2:
+  53:src/ubsan.c   ****     printString((char*)location->filename);
+  59              		.loc 1 53 5
+  60 003c 03B50400 		ld	a0,0(s1)
+  61 0040 97000000 		call	printString
+  61      E7800000 
+  62              	.LVL3:
+  54:src/ubsan.c   ****     printString("; line = ");
+  63              		.loc 1 54 5
+  64 0048 17050000 		lla	a0,.LC1
+  64      13050500 
+  65 0050 97000000 		call	printString
+  65      E7800000 
+  66              	.LVL4:
+  55:src/ubsan.c   **** 	printInteger(location->line);
+  67              		.loc 1 55 2
+  68 0058 03E58400 		lwu	a0,8(s1)
+  69 005c 97000000 		call	printInteger
+  69      E7800000 
+  70              	.LVL5:
+  56:src/ubsan.c   ****     printString("; column = ");
+  71              		.loc 1 56 5
+  72 0064 17050000 		lla	a0,.LC2
+  72      13050500 
+  73 006c 97000000 		call	printString
+  73      E7800000 
+  74              	.LVL6:
+  57:src/ubsan.c   ****     printInteger(location->column);
+  75              		.loc 1 57 5
+  76 0074 03E5C400 		lwu	a0,12(s1)
+  77 0078 97000000 		call	printInteger
+  77      E7800000 
+  78              	.LVL7:
+  58:src/ubsan.c   ****     printString("; violation = ");
+  79              		.loc 1 58 5
+  80 0080 17050000 		lla	a0,.LC3
+  80      13050500 
+  81 0088 97000000 		call	printString
+  81      E7800000 
+  82              	.LVL8:
+  59:src/ubsan.c   ****     printString((char*)violation);
+  83              		.loc 1 59 5
+  84 0090 13050900 		mv	a0,s2
+  85 0094 97000000 		call	printString
+  85      E7800000 
+  86              	.LVL9:
+  60:src/ubsan.c   ****     printString(";\n");
+  87              		.loc 1 60 5
+  88 009c 17050000 		lla	a0,.LC4
+  88      13050500 
+  89 00a4 97000000 		call	printString
+GAS LISTING /tmp/cci2iscS.s 			page 4
+
+
+  89      E7800000 
+  90              	.LVL10:
+  91              	.L3:
+  61:src/ubsan.c   **** 
+  62:src/ubsan.c   **** 
+  63:src/ubsan.c   **** 	while (true) {
+  92              		.loc 1 63 2 discriminator 1
+  64:src/ubsan.c   **** 		__asm__ __volatile__ ("nop;");
+  93              		.loc 1 64 3 discriminator 1
+  94              	#APP
+  95              	# 64 "src/ubsan.c" 1
+  65              		}
+  63:src/ubsan.c   **** 		__asm__ __volatile__ ("nop;");
+  96              		nop;
+  97              	# 0 "" 2
+  98              		.loc 1 63 8 discriminator 1
+  99              	#NO_APP
+ 100 00b0 6FF0DFFF 		j	.L3
+ 101              	.LVL11:
+ 102              	.L4:
+  48:src/ubsan.c   **** 
+ 103              		.loc 1 48 12 is_stmt 0
+ 104 00b4 97040000 		lla	s1,.LANCHOR0
+ 104      93840400 
+ 105 00bc 6FF01FF7 		j	.L2
+ 106              	.LVL12:
+ 107              	.L7:
+ 108 00c0 97040000 		lla	s1,.LANCHOR0
+ 108      93840400 
+ 109              	.LVL13:
+ 110 00c8 6FF05FF6 		j	.L2
+ 111              		.cfi_endproc
+ 112              	.LFE0:
+ 114              		.section	.rodata.str1.8
+ 115 0043 00000000 		.align	3
+ 115      00
+ 116              	.LC5:
+ 117 0048 756E616C 		.string	"unaligned access"
+ 117      69676E65 
+ 117      64206163 
+ 117      63657373 
+ 117      00
+ 118 0059 00000000 		.align	3
+ 118      000000
+ 119              	.LC6:
+ 120 0060 6E756C6C 		.string	"null pointer access"
+ 120      20706F69 
+ 120      6E746572 
+ 120      20616363 
+ 120      65737300 
+ 121 0074 00000000 		.align	3
+ 122              	.LC7:
+ 123 0078 74797065 		.string	"type mismatch"
+ 123      206D6973 
+ 123      6D617463 
+ 123      6800
+ 124              		.text
+GAS LISTING /tmp/cci2iscS.s 			page 5
+
+
+ 125              		.align	2
+ 126              		.globl	__ubsan_handle_type_mismatch_v1
+ 128              	__ubsan_handle_type_mismatch_v1:
+ 129              	.LFB1:
+  66:src/ubsan.c   **** }
+  67:src/ubsan.c   **** 
+  68:src/ubsan.c   **** #define ABORT_VARIANT(name, params, call)                                   \
+  69:src/ubsan.c   **** 	__attribute__((noreturn)) void __ubsan_handle_##name##_abort params \
+  70:src/ubsan.c   **** 	{                                                                   \
+  71:src/ubsan.c   **** 		__ubsan_handle_##name call;                                 \
+  72:src/ubsan.c   **** 		__builtin_unreachable();                                    \
+  73:src/ubsan.c   **** 	}
+  74:src/ubsan.c   **** 
+  75:src/ubsan.c   **** #define ABORT_VARIANT_VP(name) ABORT_VARIANT(name, (void *a), (a))
+  76:src/ubsan.c   **** #define ABORT_VARIANT_VP_VP(name) \
+  77:src/ubsan.c   **** 	ABORT_VARIANT(name, (void *a, void *b), (a, b))
+  78:src/ubsan.c   **** #define ABORT_VARIANT_VP_IP(name) \
+  79:src/ubsan.c   **** 	ABORT_VARIANT(name, (void *a, intptr_t b), (a, b))
+  80:src/ubsan.c   **** #define ABORT_VARIANT_VP_VP_VP(name) \
+  81:src/ubsan.c   **** 	ABORT_VARIANT(name, (void *a, void *b, void *c), (a, b, c))
+  82:src/ubsan.c   **** 
+  83:src/ubsan.c   **** struct ubsan_type_mismatch_v1_data {
+  84:src/ubsan.c   **** 	struct ubsan_source_location location;
+  85:src/ubsan.c   **** 	struct ubsan_type_descriptor *type;
+  86:src/ubsan.c   **** 	uintptr_t alignment;
+  87:src/ubsan.c   **** 	unsigned char type_check_kind;
+  88:src/ubsan.c   **** };
+  89:src/ubsan.c   **** 
+  90:src/ubsan.c   **** void __ubsan_handle_type_mismatch_v1(void *data_raw, void *pointer_raw)
+  91:src/ubsan.c   **** {
+ 130              		.loc 1 91 1 is_stmt 1
+ 131              		.cfi_startproc
+ 132              	.LVL14:
+ 133 00cc 130101FF 		addi	sp,sp,-16
+ 134              		.cfi_def_cfa_offset 16
+ 135 00d0 23341100 		sd	ra,8(sp)
+ 136 00d4 23308100 		sd	s0,0(sp)
+ 137              		.cfi_offset 1, -8
+ 138              		.cfi_offset 8, -16
+ 139 00d8 13040101 		addi	s0,sp,16
+ 140              		.cfi_def_cfa 8, 0
+  92:src/ubsan.c   **** 	struct ubsan_type_mismatch_v1_data *data =
+ 141              		.loc 1 92 2
+ 142              	.LVL15:
+  93:src/ubsan.c   **** 		(struct ubsan_type_mismatch_v1_data *)data_raw;
+  94:src/ubsan.c   **** 	ubsan_value_handle_t pointer = (ubsan_value_handle_t)pointer_raw;
+ 143              		.loc 1 94 2
+  95:src/ubsan.c   **** 	const char *violation = "type mismatch";
+ 144              		.loc 1 95 2
+  96:src/ubsan.c   **** 	if (!pointer)
+ 145              		.loc 1 96 2
+ 146              		.loc 1 96 5 is_stmt 0
+ 147 00dc 63820502 		beqz	a1,.L10
+  97:src/ubsan.c   **** 		violation = "null pointer access";
+  98:src/ubsan.c   **** 	else if (data->alignment && (pointer & (data->alignment - 1)))
+ 148              		.loc 1 98 7 is_stmt 1
+ 149              		.loc 1 98 15 is_stmt 0
+GAS LISTING /tmp/cci2iscS.s 			page 6
+
+
+ 150 00e0 83378501 		ld	a5,24(a0)
+ 151              		.loc 1 98 10
+ 152 00e4 63840702 		beqz	a5,.L11
+ 153              		.loc 1 98 58 discriminator 1
+ 154 00e8 9387F7FF 		addi	a5,a5,-1
+ 155              		.loc 1 98 39 discriminator 1
+ 156 00ec B3F5B700 		and	a1,a5,a1
+ 157              	.LVL16:
+ 158              		.loc 1 98 27 discriminator 1
+ 159 00f0 63960502 		bnez	a1,.L12
+  95:src/ubsan.c   **** 	if (!pointer)
+ 160              		.loc 1 95 14
+ 161 00f4 97050000 		lla	a1,.LC7
+ 161      93850500 
+ 162 00fc 6F008001 		j	.L9
+ 163              	.LVL17:
+ 164              	.L10:
+  97:src/ubsan.c   **** 		violation = "null pointer access";
+ 165              		.loc 1 97 13
+ 166 0100 97050000 		lla	a1,.LC6
+ 166      93850500 
+ 167              	.LVL18:
+ 168 0108 6F00C000 		j	.L9
+ 169              	.LVL19:
+ 170              	.L11:
+  95:src/ubsan.c   **** 	if (!pointer)
+ 171              		.loc 1 95 14
+ 172 010c 97050000 		lla	a1,.LC7
+ 172      93850500 
+ 173              	.LVL20:
+ 174              	.L9:
+  99:src/ubsan.c   **** 		violation = "unaligned access";
+ 100:src/ubsan.c   **** 	ubsan_abort(&data->location, violation);
+ 175              		.loc 1 100 2 is_stmt 1
+ 176 0114 97000000 		call	ubsan_abort
+ 176      E7800000 
+ 177              	.LVL21:
+ 178              	.L12:
+  99:src/ubsan.c   **** 		violation = "unaligned access";
+ 179              		.loc 1 99 13 is_stmt 0
+ 180 011c 97050000 		lla	a1,.LC5
+ 180      93850500 
+ 181 0124 6FF01FFF 		j	.L9
+ 182              		.cfi_endproc
+ 183              	.LFE1:
+ 185              		.align	2
+ 186              		.globl	__ubsan_handle_type_mismatch_v1_abort
+ 188              	__ubsan_handle_type_mismatch_v1_abort:
+ 189              	.LFB2:
+ 101:src/ubsan.c   **** }
+ 102:src/ubsan.c   **** 
+ 103:src/ubsan.c   **** ABORT_VARIANT_VP_VP(type_mismatch_v1);
+ 190              		.loc 1 103 1 is_stmt 1
+ 191              		.cfi_startproc
+ 192              	.LVL22:
+ 193 0128 130101FF 		addi	sp,sp,-16
+ 194              		.cfi_def_cfa_offset 16
+GAS LISTING /tmp/cci2iscS.s 			page 7
+
+
+ 195 012c 23341100 		sd	ra,8(sp)
+ 196 0130 23308100 		sd	s0,0(sp)
+ 197              		.cfi_offset 1, -8
+ 198              		.cfi_offset 8, -16
+ 199 0134 13040101 		addi	s0,sp,16
+ 200              		.cfi_def_cfa 8, 0
+ 201              		.loc 1 103 1
+ 202 0138 97000000 		call	__ubsan_handle_type_mismatch_v1
+ 202      E7800000 
+ 203              	.LVL23:
+ 204              		.cfi_endproc
+ 205              	.LFE2:
+ 207              		.section	.rodata.str1.8
+ 208 0086 0000     		.align	3
+ 209              	.LC8:
+ 210 0088 706F696E 		.string	"pointer overflow"
+ 210      74657220 
+ 210      6F766572 
+ 210      666C6F77 
+ 210      00
+ 211              		.text
+ 212              		.align	2
+ 213              		.globl	__ubsan_handle_pointer_overflow
+ 215              	__ubsan_handle_pointer_overflow:
+ 216              	.LFB3:
+ 104:src/ubsan.c   **** 
+ 105:src/ubsan.c   **** struct ubsan_overflow_data {
+ 106:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 107:src/ubsan.c   **** 	struct ubsan_type_descriptor *type;
+ 108:src/ubsan.c   **** };
+ 109:src/ubsan.c   **** 
+ 110:src/ubsan.c   **** void __ubsan_handle_pointer_overflow(void *data_raw, void *lhs_raw,
+ 111:src/ubsan.c   **** 				     void *rhs_raw)
+ 112:src/ubsan.c   **** {
+ 217              		.loc 1 112 1
+ 218              		.cfi_startproc
+ 219              	.LVL24:
+ 220 0140 130101FF 		addi	sp,sp,-16
+ 221              		.cfi_def_cfa_offset 16
+ 222 0144 23341100 		sd	ra,8(sp)
+ 223 0148 23308100 		sd	s0,0(sp)
+ 224              		.cfi_offset 1, -8
+ 225              		.cfi_offset 8, -16
+ 226 014c 13040101 		addi	s0,sp,16
+ 227              		.cfi_def_cfa 8, 0
+ 113:src/ubsan.c   **** 	struct ubsan_overflow_data *data =
+ 228              		.loc 1 113 2
+ 229              	.LVL25:
+ 114:src/ubsan.c   **** 		(struct ubsan_overflow_data *)data_raw;
+ 115:src/ubsan.c   **** 	ubsan_value_handle_t lhs = (ubsan_value_handle_t)lhs_raw;
+ 230              		.loc 1 115 2
+ 116:src/ubsan.c   **** 	ubsan_value_handle_t rhs = (ubsan_value_handle_t)rhs_raw;
+ 231              		.loc 1 116 2
+ 117:src/ubsan.c   **** 	(void)lhs;
+ 232              		.loc 1 117 2
+ 118:src/ubsan.c   **** 	(void)rhs;
+ 233              		.loc 1 118 2
+GAS LISTING /tmp/cci2iscS.s 			page 8
+
+
+ 119:src/ubsan.c   **** 	ubsan_abort(&data->location, "pointer overflow");
+ 234              		.loc 1 119 2
+ 235 0150 97050000 		lla	a1,.LC8
+ 235      93850500 
+ 236              	.LVL26:
+ 237 0158 97000000 		call	ubsan_abort
+ 237      E7800000 
+ 238              	.LVL27:
+ 239              		.cfi_endproc
+ 240              	.LFE3:
+ 242              		.align	2
+ 243              		.globl	__ubsan_handle_pointer_overflow_abort
+ 245              	__ubsan_handle_pointer_overflow_abort:
+ 246              	.LFB4:
+ 120:src/ubsan.c   **** }
+ 121:src/ubsan.c   **** 
+ 122:src/ubsan.c   **** ABORT_VARIANT_VP_VP_VP(pointer_overflow);
+ 247              		.loc 1 122 1
+ 248              		.cfi_startproc
+ 249              	.LVL28:
+ 250 0160 130101FF 		addi	sp,sp,-16
+ 251              		.cfi_def_cfa_offset 16
+ 252 0164 23341100 		sd	ra,8(sp)
+ 253 0168 23308100 		sd	s0,0(sp)
+ 254              		.cfi_offset 1, -8
+ 255              		.cfi_offset 8, -16
+ 256 016c 13040101 		addi	s0,sp,16
+ 257              		.cfi_def_cfa 8, 0
+ 258              		.loc 1 122 1
+ 259 0170 97000000 		call	__ubsan_handle_pointer_overflow
+ 259      E7800000 
+ 260              	.LVL29:
+ 261              		.cfi_endproc
+ 262              	.LFE4:
+ 264              		.section	.rodata.str1.8
+ 265 0099 00000000 		.align	3
+ 265      000000
+ 266              	.LC9:
+ 267 00a0 61646469 		.string	"addition overflow"
+ 267      74696F6E 
+ 267      206F7665 
+ 267      72666C6F 
+ 267      7700
+ 268              		.text
+ 269              		.align	2
+ 270              		.globl	__ubsan_handle_add_overflow
+ 272              	__ubsan_handle_add_overflow:
+ 273              	.LFB5:
+ 123:src/ubsan.c   **** 
+ 124:src/ubsan.c   **** void __ubsan_handle_add_overflow(void *data_raw, void *lhs_raw, void *rhs_raw)
+ 125:src/ubsan.c   **** {
+ 274              		.loc 1 125 1
+ 275              		.cfi_startproc
+ 276              	.LVL30:
+ 277 0178 130101FF 		addi	sp,sp,-16
+ 278              		.cfi_def_cfa_offset 16
+ 279 017c 23341100 		sd	ra,8(sp)
+GAS LISTING /tmp/cci2iscS.s 			page 9
+
+
+ 280 0180 23308100 		sd	s0,0(sp)
+ 281              		.cfi_offset 1, -8
+ 282              		.cfi_offset 8, -16
+ 283 0184 13040101 		addi	s0,sp,16
+ 284              		.cfi_def_cfa 8, 0
+ 126:src/ubsan.c   **** 	struct ubsan_overflow_data *data =
+ 285              		.loc 1 126 2
+ 286              	.LVL31:
+ 127:src/ubsan.c   **** 		(struct ubsan_overflow_data *)data_raw;
+ 128:src/ubsan.c   **** 	ubsan_value_handle_t lhs = (ubsan_value_handle_t)lhs_raw;
+ 287              		.loc 1 128 2
+ 129:src/ubsan.c   **** 	ubsan_value_handle_t rhs = (ubsan_value_handle_t)rhs_raw;
+ 288              		.loc 1 129 2
+ 130:src/ubsan.c   **** 	(void)lhs;
+ 289              		.loc 1 130 2
+ 131:src/ubsan.c   **** 	(void)rhs;
+ 290              		.loc 1 131 2
+ 132:src/ubsan.c   **** 	ubsan_abort(&data->location, "addition overflow");
+ 291              		.loc 1 132 2
+ 292 0188 97050000 		lla	a1,.LC9
+ 292      93850500 
+ 293              	.LVL32:
+ 294 0190 97000000 		call	ubsan_abort
+ 294      E7800000 
+ 295              	.LVL33:
+ 296              		.cfi_endproc
+ 297              	.LFE5:
+ 299              		.align	2
+ 300              		.globl	__ubsan_handle_add_overflow_abort
+ 302              	__ubsan_handle_add_overflow_abort:
+ 303              	.LFB6:
+ 133:src/ubsan.c   **** }
+ 134:src/ubsan.c   **** 
+ 135:src/ubsan.c   **** ABORT_VARIANT_VP_VP_VP(add_overflow);
+ 304              		.loc 1 135 1
+ 305              		.cfi_startproc
+ 306              	.LVL34:
+ 307 0198 130101FF 		addi	sp,sp,-16
+ 308              		.cfi_def_cfa_offset 16
+ 309 019c 23341100 		sd	ra,8(sp)
+ 310 01a0 23308100 		sd	s0,0(sp)
+ 311              		.cfi_offset 1, -8
+ 312              		.cfi_offset 8, -16
+ 313 01a4 13040101 		addi	s0,sp,16
+ 314              		.cfi_def_cfa 8, 0
+ 315              		.loc 1 135 1
+ 316 01a8 97000000 		call	__ubsan_handle_add_overflow
+ 316      E7800000 
+ 317              	.LVL35:
+ 318              		.cfi_endproc
+ 319              	.LFE6:
+ 321              		.section	.rodata.str1.8
+ 322 00b2 00000000 		.align	3
+ 322      0000
+ 323              	.LC10:
+ 324 00b8 73756274 		.string	"subtraction overflow"
+ 324      72616374 
+GAS LISTING /tmp/cci2iscS.s 			page 10
+
+
+ 324      696F6E20 
+ 324      6F766572 
+ 324      666C6F77 
+ 325              		.text
+ 326              		.align	2
+ 327              		.globl	__ubsan_handle_sub_overflow
+ 329              	__ubsan_handle_sub_overflow:
+ 330              	.LFB7:
+ 136:src/ubsan.c   **** 
+ 137:src/ubsan.c   **** void __ubsan_handle_sub_overflow(void *data_raw, void *lhs_raw, void *rhs_raw)
+ 138:src/ubsan.c   **** {
+ 331              		.loc 1 138 1
+ 332              		.cfi_startproc
+ 333              	.LVL36:
+ 334 01b0 130101FF 		addi	sp,sp,-16
+ 335              		.cfi_def_cfa_offset 16
+ 336 01b4 23341100 		sd	ra,8(sp)
+ 337 01b8 23308100 		sd	s0,0(sp)
+ 338              		.cfi_offset 1, -8
+ 339              		.cfi_offset 8, -16
+ 340 01bc 13040101 		addi	s0,sp,16
+ 341              		.cfi_def_cfa 8, 0
+ 139:src/ubsan.c   **** 	struct ubsan_overflow_data *data =
+ 342              		.loc 1 139 2
+ 343              	.LVL37:
+ 140:src/ubsan.c   **** 		(struct ubsan_overflow_data *)data_raw;
+ 141:src/ubsan.c   **** 	ubsan_value_handle_t lhs = (ubsan_value_handle_t)lhs_raw;
+ 344              		.loc 1 141 2
+ 142:src/ubsan.c   **** 	ubsan_value_handle_t rhs = (ubsan_value_handle_t)rhs_raw;
+ 345              		.loc 1 142 2
+ 143:src/ubsan.c   **** 	(void)lhs;
+ 346              		.loc 1 143 2
+ 144:src/ubsan.c   **** 	(void)rhs;
+ 347              		.loc 1 144 2
+ 145:src/ubsan.c   **** 	ubsan_abort(&data->location, "subtraction overflow");
+ 348              		.loc 1 145 2
+ 349 01c0 97050000 		lla	a1,.LC10
+ 349      93850500 
+ 350              	.LVL38:
+ 351 01c8 97000000 		call	ubsan_abort
+ 351      E7800000 
+ 352              	.LVL39:
+ 353              		.cfi_endproc
+ 354              	.LFE7:
+ 356              		.align	2
+ 357              		.globl	__ubsan_handle_sub_overflow_abort
+ 359              	__ubsan_handle_sub_overflow_abort:
+ 360              	.LFB8:
+ 146:src/ubsan.c   **** }
+ 147:src/ubsan.c   **** 
+ 148:src/ubsan.c   **** ABORT_VARIANT_VP_VP_VP(sub_overflow);
+ 361              		.loc 1 148 1
+ 362              		.cfi_startproc
+ 363              	.LVL40:
+ 364 01d0 130101FF 		addi	sp,sp,-16
+ 365              		.cfi_def_cfa_offset 16
+ 366 01d4 23341100 		sd	ra,8(sp)
+GAS LISTING /tmp/cci2iscS.s 			page 11
+
+
+ 367 01d8 23308100 		sd	s0,0(sp)
+ 368              		.cfi_offset 1, -8
+ 369              		.cfi_offset 8, -16
+ 370 01dc 13040101 		addi	s0,sp,16
+ 371              		.cfi_def_cfa 8, 0
+ 372              		.loc 1 148 1
+ 373 01e0 97000000 		call	__ubsan_handle_sub_overflow
+ 373      E7800000 
+ 374              	.LVL41:
+ 375              		.cfi_endproc
+ 376              	.LFE8:
+ 378              		.section	.rodata.str1.8
+ 379 00cd 000000   		.align	3
+ 380              	.LC11:
+ 381 00d0 6D756C74 		.string	"multiplication overflow"
+ 381      69706C69 
+ 381      63617469 
+ 381      6F6E206F 
+ 381      76657266 
+ 382              		.text
+ 383              		.align	2
+ 384              		.globl	__ubsan_handle_mul_overflow
+ 386              	__ubsan_handle_mul_overflow:
+ 387              	.LFB9:
+ 149:src/ubsan.c   **** 
+ 150:src/ubsan.c   **** void __ubsan_handle_mul_overflow(void *data_raw, void *lhs_raw, void *rhs_raw)
+ 151:src/ubsan.c   **** {
+ 388              		.loc 1 151 1
+ 389              		.cfi_startproc
+ 390              	.LVL42:
+ 391 01e8 130101FF 		addi	sp,sp,-16
+ 392              		.cfi_def_cfa_offset 16
+ 393 01ec 23341100 		sd	ra,8(sp)
+ 394 01f0 23308100 		sd	s0,0(sp)
+ 395              		.cfi_offset 1, -8
+ 396              		.cfi_offset 8, -16
+ 397 01f4 13040101 		addi	s0,sp,16
+ 398              		.cfi_def_cfa 8, 0
+ 152:src/ubsan.c   **** 	struct ubsan_overflow_data *data =
+ 399              		.loc 1 152 2
+ 400              	.LVL43:
+ 153:src/ubsan.c   **** 		(struct ubsan_overflow_data *)data_raw;
+ 154:src/ubsan.c   **** 	ubsan_value_handle_t lhs = (ubsan_value_handle_t)lhs_raw;
+ 401              		.loc 1 154 2
+ 155:src/ubsan.c   **** 	ubsan_value_handle_t rhs = (ubsan_value_handle_t)rhs_raw;
+ 402              		.loc 1 155 2
+ 156:src/ubsan.c   **** 	(void)lhs;
+ 403              		.loc 1 156 2
+ 157:src/ubsan.c   **** 	(void)rhs;
+ 404              		.loc 1 157 2
+ 158:src/ubsan.c   **** 	ubsan_abort(&data->location, "multiplication overflow");
+ 405              		.loc 1 158 2
+ 406 01f8 97050000 		lla	a1,.LC11
+ 406      93850500 
+ 407              	.LVL44:
+ 408 0200 97000000 		call	ubsan_abort
+ 408      E7800000 
+GAS LISTING /tmp/cci2iscS.s 			page 12
+
+
+ 409              	.LVL45:
+ 410              		.cfi_endproc
+ 411              	.LFE9:
+ 413              		.align	2
+ 414              		.globl	__ubsan_handle_mul_overflow_abort
+ 416              	__ubsan_handle_mul_overflow_abort:
+ 417              	.LFB10:
+ 159:src/ubsan.c   **** }
+ 160:src/ubsan.c   **** 
+ 161:src/ubsan.c   **** ABORT_VARIANT_VP_VP_VP(mul_overflow);
+ 418              		.loc 1 161 1
+ 419              		.cfi_startproc
+ 420              	.LVL46:
+ 421 0208 130101FF 		addi	sp,sp,-16
+ 422              		.cfi_def_cfa_offset 16
+ 423 020c 23341100 		sd	ra,8(sp)
+ 424 0210 23308100 		sd	s0,0(sp)
+ 425              		.cfi_offset 1, -8
+ 426              		.cfi_offset 8, -16
+ 427 0214 13040101 		addi	s0,sp,16
+ 428              		.cfi_def_cfa 8, 0
+ 429              		.loc 1 161 1
+ 430 0218 97000000 		call	__ubsan_handle_mul_overflow
+ 430      E7800000 
+ 431              	.LVL47:
+ 432              		.cfi_endproc
+ 433              	.LFE10:
+ 435              		.section	.rodata.str1.8
+ 436              		.align	3
+ 437              	.LC12:
+ 438 00e8 6E656761 		.string	"negation overflow"
+ 438      74696F6E 
+ 438      206F7665 
+ 438      72666C6F 
+ 438      7700
+ 439              		.text
+ 440              		.align	2
+ 441              		.globl	__ubsan_handle_negate_overflow
+ 443              	__ubsan_handle_negate_overflow:
+ 444              	.LFB11:
+ 162:src/ubsan.c   **** 
+ 163:src/ubsan.c   **** void __ubsan_handle_negate_overflow(void *data_raw, void *old_value_raw)
+ 164:src/ubsan.c   **** {
+ 445              		.loc 1 164 1
+ 446              		.cfi_startproc
+ 447              	.LVL48:
+ 448 0220 130101FF 		addi	sp,sp,-16
+ 449              		.cfi_def_cfa_offset 16
+ 450 0224 23341100 		sd	ra,8(sp)
+ 451 0228 23308100 		sd	s0,0(sp)
+ 452              		.cfi_offset 1, -8
+ 453              		.cfi_offset 8, -16
+ 454 022c 13040101 		addi	s0,sp,16
+ 455              		.cfi_def_cfa 8, 0
+ 165:src/ubsan.c   **** 	struct ubsan_overflow_data *data =
+ 456              		.loc 1 165 2
+ 457              	.LVL49:
+GAS LISTING /tmp/cci2iscS.s 			page 13
+
+
+ 166:src/ubsan.c   **** 		(struct ubsan_overflow_data *)data_raw;
+ 167:src/ubsan.c   **** 	ubsan_value_handle_t old_value = (ubsan_value_handle_t)old_value_raw;
+ 458              		.loc 1 167 2
+ 168:src/ubsan.c   **** 	(void)old_value;
+ 459              		.loc 1 168 2
+ 169:src/ubsan.c   **** 	ubsan_abort(&data->location, "negation overflow");
+ 460              		.loc 1 169 2
+ 461 0230 97050000 		lla	a1,.LC12
+ 461      93850500 
+ 462              	.LVL50:
+ 463 0238 97000000 		call	ubsan_abort
+ 463      E7800000 
+ 464              	.LVL51:
+ 465              		.cfi_endproc
+ 466              	.LFE11:
+ 468              		.align	2
+ 469              		.globl	__ubsan_handle_negate_overflow_abort
+ 471              	__ubsan_handle_negate_overflow_abort:
+ 472              	.LFB12:
+ 170:src/ubsan.c   **** }
+ 171:src/ubsan.c   **** 
+ 172:src/ubsan.c   **** ABORT_VARIANT_VP_VP(negate_overflow);
+ 473              		.loc 1 172 1
+ 474              		.cfi_startproc
+ 475              	.LVL52:
+ 476 0240 130101FF 		addi	sp,sp,-16
+ 477              		.cfi_def_cfa_offset 16
+ 478 0244 23341100 		sd	ra,8(sp)
+ 479 0248 23308100 		sd	s0,0(sp)
+ 480              		.cfi_offset 1, -8
+ 481              		.cfi_offset 8, -16
+ 482 024c 13040101 		addi	s0,sp,16
+ 483              		.cfi_def_cfa 8, 0
+ 484              		.loc 1 172 1
+ 485 0250 97000000 		call	__ubsan_handle_negate_overflow
+ 485      E7800000 
+ 486              	.LVL53:
+ 487              		.cfi_endproc
+ 488              	.LFE12:
+ 490              		.section	.rodata.str1.8
+ 491 00fa 00000000 		.align	3
+ 491      0000
+ 492              	.LC13:
+ 493 0100 64697669 		.string	"division remainder overflow"
+ 493      73696F6E 
+ 493      2072656D 
+ 493      61696E64 
+ 493      6572206F 
+ 494              		.text
+ 495              		.align	2
+ 496              		.globl	__ubsan_handle_divrem_overflow
+ 498              	__ubsan_handle_divrem_overflow:
+ 499              	.LFB13:
+ 173:src/ubsan.c   **** 
+ 174:src/ubsan.c   **** void __ubsan_handle_divrem_overflow(void *data_raw, void *lhs_raw,
+ 175:src/ubsan.c   **** 				    void *rhs_raw)
+ 176:src/ubsan.c   **** {
+GAS LISTING /tmp/cci2iscS.s 			page 14
+
+
+ 500              		.loc 1 176 1
+ 501              		.cfi_startproc
+ 502              	.LVL54:
+ 503 0258 130101FF 		addi	sp,sp,-16
+ 504              		.cfi_def_cfa_offset 16
+ 505 025c 23341100 		sd	ra,8(sp)
+ 506 0260 23308100 		sd	s0,0(sp)
+ 507              		.cfi_offset 1, -8
+ 508              		.cfi_offset 8, -16
+ 509 0264 13040101 		addi	s0,sp,16
+ 510              		.cfi_def_cfa 8, 0
+ 177:src/ubsan.c   **** 	struct ubsan_overflow_data *data =
+ 511              		.loc 1 177 2
+ 512              	.LVL55:
+ 178:src/ubsan.c   **** 		(struct ubsan_overflow_data *)data_raw;
+ 179:src/ubsan.c   **** 	ubsan_value_handle_t lhs = (ubsan_value_handle_t)lhs_raw;
+ 513              		.loc 1 179 2
+ 180:src/ubsan.c   **** 	ubsan_value_handle_t rhs = (ubsan_value_handle_t)rhs_raw;
+ 514              		.loc 1 180 2
+ 181:src/ubsan.c   **** 	(void)lhs;
+ 515              		.loc 1 181 2
+ 182:src/ubsan.c   **** 	(void)rhs;
+ 516              		.loc 1 182 2
+ 183:src/ubsan.c   **** 	ubsan_abort(&data->location, "division remainder overflow");
+ 517              		.loc 1 183 2
+ 518 0268 97050000 		lla	a1,.LC13
+ 518      93850500 
+ 519              	.LVL56:
+ 520 0270 97000000 		call	ubsan_abort
+ 520      E7800000 
+ 521              	.LVL57:
+ 522              		.cfi_endproc
+ 523              	.LFE13:
+ 525              		.align	2
+ 526              		.globl	__ubsan_handle_divrem_overflow_abort
+ 528              	__ubsan_handle_divrem_overflow_abort:
+ 529              	.LFB14:
+ 184:src/ubsan.c   **** }
+ 185:src/ubsan.c   **** 
+ 186:src/ubsan.c   **** ABORT_VARIANT_VP_VP_VP(divrem_overflow);
+ 530              		.loc 1 186 1
+ 531              		.cfi_startproc
+ 532              	.LVL58:
+ 533 0278 130101FF 		addi	sp,sp,-16
+ 534              		.cfi_def_cfa_offset 16
+ 535 027c 23341100 		sd	ra,8(sp)
+ 536 0280 23308100 		sd	s0,0(sp)
+ 537              		.cfi_offset 1, -8
+ 538              		.cfi_offset 8, -16
+ 539 0284 13040101 		addi	s0,sp,16
+ 540              		.cfi_def_cfa 8, 0
+ 541              		.loc 1 186 1
+ 542 0288 97000000 		call	__ubsan_handle_divrem_overflow
+ 542      E7800000 
+ 543              	.LVL59:
+ 544              		.cfi_endproc
+ 545              	.LFE14:
+GAS LISTING /tmp/cci2iscS.s 			page 15
+
+
+ 547              		.section	.rodata.str1.8
+ 548 011c 00000000 		.align	3
+ 549              	.LC14:
+ 550 0120 73686966 		.string	"shift out of bounds"
+ 550      74206F75 
+ 550      74206F66 
+ 550      20626F75 
+ 550      6E647300 
+ 551              		.text
+ 552              		.align	2
+ 553              		.globl	__ubsan_handle_shift_out_of_bounds
+ 555              	__ubsan_handle_shift_out_of_bounds:
+ 556              	.LFB15:
+ 187:src/ubsan.c   **** 
+ 188:src/ubsan.c   **** struct ubsan_shift_out_of_bounds_data {
+ 189:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 190:src/ubsan.c   **** 	struct ubsan_type_descriptor *lhs_type;
+ 191:src/ubsan.c   **** 	struct ubsan_type_descriptor *rhs_type;
+ 192:src/ubsan.c   **** };
+ 193:src/ubsan.c   **** 
+ 194:src/ubsan.c   **** void __ubsan_handle_shift_out_of_bounds(void *data_raw, void *lhs_raw,
+ 195:src/ubsan.c   **** 					void *rhs_raw)
+ 196:src/ubsan.c   **** {
+ 557              		.loc 1 196 1
+ 558              		.cfi_startproc
+ 559              	.LVL60:
+ 560 0290 130101FF 		addi	sp,sp,-16
+ 561              		.cfi_def_cfa_offset 16
+ 562 0294 23341100 		sd	ra,8(sp)
+ 563 0298 23308100 		sd	s0,0(sp)
+ 564              		.cfi_offset 1, -8
+ 565              		.cfi_offset 8, -16
+ 566 029c 13040101 		addi	s0,sp,16
+ 567              		.cfi_def_cfa 8, 0
+ 197:src/ubsan.c   **** 	struct ubsan_shift_out_of_bounds_data *data =
+ 568              		.loc 1 197 2
+ 569              	.LVL61:
+ 198:src/ubsan.c   **** 		(struct ubsan_shift_out_of_bounds_data *)data_raw;
+ 199:src/ubsan.c   **** 	ubsan_value_handle_t lhs = (ubsan_value_handle_t)lhs_raw;
+ 570              		.loc 1 199 2
+ 200:src/ubsan.c   **** 	ubsan_value_handle_t rhs = (ubsan_value_handle_t)rhs_raw;
+ 571              		.loc 1 200 2
+ 201:src/ubsan.c   **** 	(void)lhs;
+ 572              		.loc 1 201 2
+ 202:src/ubsan.c   **** 	(void)rhs;
+ 573              		.loc 1 202 2
+ 203:src/ubsan.c   **** 	ubsan_abort(&data->location, "shift out of bounds");
+ 574              		.loc 1 203 2
+ 575 02a0 97050000 		lla	a1,.LC14
+ 575      93850500 
+ 576              	.LVL62:
+ 577 02a8 97000000 		call	ubsan_abort
+ 577      E7800000 
+ 578              	.LVL63:
+ 579              		.cfi_endproc
+ 580              	.LFE15:
+ 582              		.align	2
+GAS LISTING /tmp/cci2iscS.s 			page 16
+
+
+ 583              		.globl	__ubsan_handle_shift_out_of_bounds_abort
+ 585              	__ubsan_handle_shift_out_of_bounds_abort:
+ 586              	.LFB16:
+ 204:src/ubsan.c   **** }
+ 205:src/ubsan.c   **** 
+ 206:src/ubsan.c   **** ABORT_VARIANT_VP_VP_VP(shift_out_of_bounds);
+ 587              		.loc 1 206 1
+ 588              		.cfi_startproc
+ 589              	.LVL64:
+ 590 02b0 130101FF 		addi	sp,sp,-16
+ 591              		.cfi_def_cfa_offset 16
+ 592 02b4 23341100 		sd	ra,8(sp)
+ 593 02b8 23308100 		sd	s0,0(sp)
+ 594              		.cfi_offset 1, -8
+ 595              		.cfi_offset 8, -16
+ 596 02bc 13040101 		addi	s0,sp,16
+ 597              		.cfi_def_cfa 8, 0
+ 598              		.loc 1 206 1
+ 599 02c0 97000000 		call	__ubsan_handle_shift_out_of_bounds
+ 599      E7800000 
+ 600              	.LVL65:
+ 601              		.cfi_endproc
+ 602              	.LFE16:
+ 604              		.section	.rodata.str1.8
+ 605 0134 00000000 		.align	3
+ 606              	.LC15:
+ 607 0138 6F757420 		.string	"out of bounds"
+ 607      6F662062 
+ 607      6F756E64 
+ 607      7300
+ 608              		.text
+ 609              		.align	2
+ 610              		.globl	__ubsan_handle_out_of_bounds
+ 612              	__ubsan_handle_out_of_bounds:
+ 613              	.LFB17:
+ 207:src/ubsan.c   **** 
+ 208:src/ubsan.c   **** struct ubsan_out_of_bounds_data {
+ 209:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 210:src/ubsan.c   **** 	struct ubsan_type_descriptor *array_type;
+ 211:src/ubsan.c   **** 	struct ubsan_type_descriptor *index_type;
+ 212:src/ubsan.c   **** };
+ 213:src/ubsan.c   **** 
+ 214:src/ubsan.c   **** void __ubsan_handle_out_of_bounds(void *data_raw, void *index_raw)
+ 215:src/ubsan.c   **** {
+ 614              		.loc 1 215 1
+ 615              		.cfi_startproc
+ 616              	.LVL66:
+ 617 02c8 130101FF 		addi	sp,sp,-16
+ 618              		.cfi_def_cfa_offset 16
+ 619 02cc 23341100 		sd	ra,8(sp)
+ 620 02d0 23308100 		sd	s0,0(sp)
+ 621              		.cfi_offset 1, -8
+ 622              		.cfi_offset 8, -16
+ 623 02d4 13040101 		addi	s0,sp,16
+ 624              		.cfi_def_cfa 8, 0
+ 216:src/ubsan.c   **** 	struct ubsan_out_of_bounds_data *data =
+ 625              		.loc 1 216 2
+GAS LISTING /tmp/cci2iscS.s 			page 17
+
+
+ 626              	.LVL67:
+ 217:src/ubsan.c   **** 		(struct ubsan_out_of_bounds_data *)data_raw;
+ 218:src/ubsan.c   **** 	ubsan_value_handle_t index = (ubsan_value_handle_t)index_raw;
+ 627              		.loc 1 218 2
+ 219:src/ubsan.c   **** 	(void)index;
+ 628              		.loc 1 219 2
+ 220:src/ubsan.c   **** 	ubsan_abort(&data->location, "out of bounds");
+ 629              		.loc 1 220 2
+ 630 02d8 97050000 		lla	a1,.LC15
+ 630      93850500 
+ 631              	.LVL68:
+ 632 02e0 97000000 		call	ubsan_abort
+ 632      E7800000 
+ 633              	.LVL69:
+ 634              		.cfi_endproc
+ 635              	.LFE17:
+ 637              		.align	2
+ 638              		.globl	__ubsan_handle_out_of_bounds_abort
+ 640              	__ubsan_handle_out_of_bounds_abort:
+ 641              	.LFB18:
+ 221:src/ubsan.c   **** }
+ 222:src/ubsan.c   **** 
+ 223:src/ubsan.c   **** ABORT_VARIANT_VP_VP(out_of_bounds);
+ 642              		.loc 1 223 1
+ 643              		.cfi_startproc
+ 644              	.LVL70:
+ 645 02e8 130101FF 		addi	sp,sp,-16
+ 646              		.cfi_def_cfa_offset 16
+ 647 02ec 23341100 		sd	ra,8(sp)
+ 648 02f0 23308100 		sd	s0,0(sp)
+ 649              		.cfi_offset 1, -8
+ 650              		.cfi_offset 8, -16
+ 651 02f4 13040101 		addi	s0,sp,16
+ 652              		.cfi_def_cfa 8, 0
+ 653              		.loc 1 223 1
+ 654 02f8 97000000 		call	__ubsan_handle_out_of_bounds
+ 654      E7800000 
+ 655              	.LVL71:
+ 656              		.cfi_endproc
+ 657              	.LFE18:
+ 659              		.section	.rodata.str1.8
+ 660 0146 0000     		.align	3
+ 661              	.LC16:
+ 662 0148 72656163 		.string	"reached unreachable"
+ 662      68656420 
+ 662      756E7265 
+ 662      61636861 
+ 662      626C6500 
+ 663              		.text
+ 664              		.align	2
+ 665              		.globl	__ubsan_handle_builtin_unreachable
+ 667              	__ubsan_handle_builtin_unreachable:
+ 668              	.LFB19:
+ 224:src/ubsan.c   **** 
+ 225:src/ubsan.c   **** struct ubsan_unreachable_data {
+ 226:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 227:src/ubsan.c   **** };
+GAS LISTING /tmp/cci2iscS.s 			page 18
+
+
+ 228:src/ubsan.c   **** 
+ 229:src/ubsan.c   **** __attribute__((noreturn)) void
+ 230:src/ubsan.c   **** __ubsan_handle_builtin_unreachable(void *data_raw)
+ 231:src/ubsan.c   **** {
+ 669              		.loc 1 231 1
+ 670              		.cfi_startproc
+ 671              	.LVL72:
+ 672 0300 130101FF 		addi	sp,sp,-16
+ 673              		.cfi_def_cfa_offset 16
+ 674 0304 23341100 		sd	ra,8(sp)
+ 675 0308 23308100 		sd	s0,0(sp)
+ 676              		.cfi_offset 1, -8
+ 677              		.cfi_offset 8, -16
+ 678 030c 13040101 		addi	s0,sp,16
+ 679              		.cfi_def_cfa 8, 0
+ 232:src/ubsan.c   **** 	struct ubsan_unreachable_data *data =
+ 680              		.loc 1 232 2
+ 681              	.LVL73:
+ 233:src/ubsan.c   **** 		(struct ubsan_unreachable_data *)data_raw;
+ 234:src/ubsan.c   **** 	ubsan_abort(&data->location, "reached unreachable");
+ 682              		.loc 1 234 2
+ 683 0310 97050000 		lla	a1,.LC16
+ 683      93850500 
+ 684 0318 97000000 		call	ubsan_abort
+ 684      E7800000 
+ 685              	.LVL74:
+ 686              		.cfi_endproc
+ 687              	.LFE19:
+ 689              		.section	.rodata.str1.8
+ 690 015c 00000000 		.align	3
+ 691              	.LC17:
+ 692 0160 6D697373 		.string	"missing return"
+ 692      696E6720 
+ 692      72657475 
+ 692      726E00
+ 693              		.text
+ 694              		.align	2
+ 695              		.globl	__ubsan_handle_missing_return
+ 697              	__ubsan_handle_missing_return:
+ 698              	.LFB20:
+ 235:src/ubsan.c   **** }
+ 236:src/ubsan.c   **** 
+ 237:src/ubsan.c   **** __attribute__((noreturn)) void __ubsan_handle_missing_return(void *data_raw)
+ 238:src/ubsan.c   **** {
+ 699              		.loc 1 238 1
+ 700              		.cfi_startproc
+ 701              	.LVL75:
+ 702 0320 130101FF 		addi	sp,sp,-16
+ 703              		.cfi_def_cfa_offset 16
+ 704 0324 23341100 		sd	ra,8(sp)
+ 705 0328 23308100 		sd	s0,0(sp)
+ 706              		.cfi_offset 1, -8
+ 707              		.cfi_offset 8, -16
+ 708 032c 13040101 		addi	s0,sp,16
+ 709              		.cfi_def_cfa 8, 0
+ 239:src/ubsan.c   **** 	struct ubsan_unreachable_data *data =
+ 710              		.loc 1 239 2
+GAS LISTING /tmp/cci2iscS.s 			page 19
+
+
+ 711              	.LVL76:
+ 240:src/ubsan.c   **** 		(struct ubsan_unreachable_data *)data_raw;
+ 241:src/ubsan.c   **** 	ubsan_abort(&data->location, "missing return");
+ 712              		.loc 1 241 2
+ 713 0330 97050000 		lla	a1,.LC17
+ 713      93850500 
+ 714 0338 97000000 		call	ubsan_abort
+ 714      E7800000 
+ 715              	.LVL77:
+ 716              		.cfi_endproc
+ 717              	.LFE20:
+ 719              		.section	.rodata.str1.8
+ 720 016f 00       		.align	3
+ 721              	.LC18:
+ 722 0170 6E656761 		.string	"negative variable array length"
+ 722      74697665 
+ 722      20766172 
+ 722      6961626C 
+ 722      65206172 
+ 723              		.text
+ 724              		.align	2
+ 725              		.globl	__ubsan_handle_vla_bound_not_positive
+ 727              	__ubsan_handle_vla_bound_not_positive:
+ 728              	.LFB21:
+ 242:src/ubsan.c   **** }
+ 243:src/ubsan.c   **** 
+ 244:src/ubsan.c   **** struct ubsan_vla_bound_data {
+ 245:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 246:src/ubsan.c   **** 	struct ubsan_type_descriptor *type;
+ 247:src/ubsan.c   **** };
+ 248:src/ubsan.c   **** 
+ 249:src/ubsan.c   **** void __ubsan_handle_vla_bound_not_positive(void *data_raw, void *bound_raw)
+ 250:src/ubsan.c   **** {
+ 729              		.loc 1 250 1
+ 730              		.cfi_startproc
+ 731              	.LVL78:
+ 732 0340 130101FF 		addi	sp,sp,-16
+ 733              		.cfi_def_cfa_offset 16
+ 734 0344 23341100 		sd	ra,8(sp)
+ 735 0348 23308100 		sd	s0,0(sp)
+ 736              		.cfi_offset 1, -8
+ 737              		.cfi_offset 8, -16
+ 738 034c 13040101 		addi	s0,sp,16
+ 739              		.cfi_def_cfa 8, 0
+ 251:src/ubsan.c   **** 	struct ubsan_vla_bound_data *data =
+ 740              		.loc 1 251 2
+ 741              	.LVL79:
+ 252:src/ubsan.c   **** 		(struct ubsan_vla_bound_data *)data_raw;
+ 253:src/ubsan.c   **** 	ubsan_value_handle_t bound = (ubsan_value_handle_t)bound_raw;
+ 742              		.loc 1 253 2
+ 254:src/ubsan.c   **** 	(void)bound;
+ 743              		.loc 1 254 2
+ 255:src/ubsan.c   **** 	ubsan_abort(&data->location, "negative variable array length");
+ 744              		.loc 1 255 2
+ 745 0350 97050000 		lla	a1,.LC18
+ 745      93850500 
+ 746              	.LVL80:
+GAS LISTING /tmp/cci2iscS.s 			page 20
+
+
+ 747 0358 97000000 		call	ubsan_abort
+ 747      E7800000 
+ 748              	.LVL81:
+ 749              		.cfi_endproc
+ 750              	.LFE21:
+ 752              		.align	2
+ 753              		.globl	__ubsan_handle_vla_bound_not_positive_abort
+ 755              	__ubsan_handle_vla_bound_not_positive_abort:
+ 756              	.LFB22:
+ 256:src/ubsan.c   **** }
+ 257:src/ubsan.c   **** 
+ 258:src/ubsan.c   **** ABORT_VARIANT_VP_VP(vla_bound_not_positive);
+ 757              		.loc 1 258 1
+ 758              		.cfi_startproc
+ 759              	.LVL82:
+ 760 0360 130101FF 		addi	sp,sp,-16
+ 761              		.cfi_def_cfa_offset 16
+ 762 0364 23341100 		sd	ra,8(sp)
+ 763 0368 23308100 		sd	s0,0(sp)
+ 764              		.cfi_offset 1, -8
+ 765              		.cfi_offset 8, -16
+ 766 036c 13040101 		addi	s0,sp,16
+ 767              		.cfi_def_cfa 8, 0
+ 768              		.loc 1 258 1
+ 769 0370 97000000 		call	__ubsan_handle_vla_bound_not_positive
+ 769      E7800000 
+ 770              	.LVL83:
+ 771              		.cfi_endproc
+ 772              	.LFE22:
+ 774              		.section	.rodata.str1.8
+ 775 018f 00       		.align	3
+ 776              	.LC19:
+ 777 0190 666C6F61 		.string	"float cast overflow"
+ 777      74206361 
+ 777      7374206F 
+ 777      76657266 
+ 777      6C6F7700 
+ 778              		.text
+ 779              		.align	2
+ 780              		.globl	__ubsan_handle_float_cast_overflow
+ 782              	__ubsan_handle_float_cast_overflow:
+ 783              	.LFB23:
+ 259:src/ubsan.c   **** 
+ 260:src/ubsan.c   **** struct ubsan_float_cast_overflow_data {
+ 261:src/ubsan.c   **** 	/* TODO: Remove this GCC 5.x compatibility after switching to GCC 6.x. The
+ 262:src/ubsan.c   **** 	 *     GCC developers accidentally forgot the source location. Their
+ 263:src/ubsan.c   **** 	 *     libubsan probes to see if it looks like a path, but we don't need
+ 264:src/ubsan.c   **** 	 *     to maintain compatibility with multiple gcc releases. See below.
+ 265:src/ubsan.c   **** 	 */
+ 266:src/ubsan.c   **** #if !(defined(__GNUC__) && __GNUC__ < 6)
+ 267:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 268:src/ubsan.c   **** #endif
+ 269:src/ubsan.c   **** 	struct ubsan_type_descriptor *from_type;
+ 270:src/ubsan.c   **** 	struct ubsan_type_descriptor *to_type;
+ 271:src/ubsan.c   **** };
+ 272:src/ubsan.c   **** 
+ 273:src/ubsan.c   **** void __ubsan_handle_float_cast_overflow(void *data_raw, void *from_raw)
+GAS LISTING /tmp/cci2iscS.s 			page 21
+
+
+ 274:src/ubsan.c   **** {
+ 784              		.loc 1 274 1
+ 785              		.cfi_startproc
+ 786              	.LVL84:
+ 787 0378 130101FF 		addi	sp,sp,-16
+ 788              		.cfi_def_cfa_offset 16
+ 789 037c 23341100 		sd	ra,8(sp)
+ 790 0380 23308100 		sd	s0,0(sp)
+ 791              		.cfi_offset 1, -8
+ 792              		.cfi_offset 8, -16
+ 793 0384 13040101 		addi	s0,sp,16
+ 794              		.cfi_def_cfa 8, 0
+ 275:src/ubsan.c   **** 	struct ubsan_float_cast_overflow_data *data =
+ 795              		.loc 1 275 2
+ 796              	.LVL85:
+ 276:src/ubsan.c   **** 		(struct ubsan_float_cast_overflow_data *)data_raw;
+ 277:src/ubsan.c   **** 	ubsan_value_handle_t from = (ubsan_value_handle_t)from_raw;
+ 797              		.loc 1 277 2
+ 278:src/ubsan.c   **** 	(void)from;
+ 798              		.loc 1 278 2
+ 279:src/ubsan.c   **** #if !(defined(__GNUC__) && __GNUC__ < 6)
+ 280:src/ubsan.c   **** 	ubsan_abort(&data->location, "float cast overflow");
+ 799              		.loc 1 280 2
+ 800 0388 97050000 		lla	a1,.LC19
+ 800      93850500 
+ 801              	.LVL86:
+ 802 0390 97000000 		call	ubsan_abort
+ 802      E7800000 
+ 803              	.LVL87:
+ 804              		.cfi_endproc
+ 805              	.LFE23:
+ 807              		.align	2
+ 808              		.globl	__ubsan_handle_float_cast_overflow_abort
+ 810              	__ubsan_handle_float_cast_overflow_abort:
+ 811              	.LFB24:
+ 281:src/ubsan.c   **** #else
+ 282:src/ubsan.c   **** 	ubsan_abort(((void)data, &unknown_location), "float cast overflow");
+ 283:src/ubsan.c   **** #endif
+ 284:src/ubsan.c   **** }
+ 285:src/ubsan.c   **** 
+ 286:src/ubsan.c   **** ABORT_VARIANT_VP_VP(float_cast_overflow);
+ 812              		.loc 1 286 1
+ 813              		.cfi_startproc
+ 814              	.LVL88:
+ 815 0398 130101FF 		addi	sp,sp,-16
+ 816              		.cfi_def_cfa_offset 16
+ 817 039c 23341100 		sd	ra,8(sp)
+ 818 03a0 23308100 		sd	s0,0(sp)
+ 819              		.cfi_offset 1, -8
+ 820              		.cfi_offset 8, -16
+ 821 03a4 13040101 		addi	s0,sp,16
+ 822              		.cfi_def_cfa 8, 0
+ 823              		.loc 1 286 1
+ 824 03a8 97000000 		call	__ubsan_handle_float_cast_overflow
+ 824      E7800000 
+ 825              	.LVL89:
+ 826              		.cfi_endproc
+GAS LISTING /tmp/cci2iscS.s 			page 22
+
+
+ 827              	.LFE24:
+ 829              		.section	.rodata.str1.8
+ 830 01a4 00000000 		.align	3
+ 831              	.LC20:
+ 832 01a8 696E7661 		.string	"invalid value load"
+ 832      6C696420 
+ 832      76616C75 
+ 832      65206C6F 
+ 832      616400
+ 833              		.text
+ 834              		.align	2
+ 835              		.globl	__ubsan_handle_load_invalid_value
+ 837              	__ubsan_handle_load_invalid_value:
+ 838              	.LFB25:
+ 287:src/ubsan.c   **** 
+ 288:src/ubsan.c   **** struct ubsan_invalid_value_data {
+ 289:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 290:src/ubsan.c   **** 	struct ubsan_type_descriptor *type;
+ 291:src/ubsan.c   **** };
+ 292:src/ubsan.c   **** 
+ 293:src/ubsan.c   **** void __ubsan_handle_load_invalid_value(void *data_raw, void *value_raw)
+ 294:src/ubsan.c   **** {
+ 839              		.loc 1 294 1
+ 840              		.cfi_startproc
+ 841              	.LVL90:
+ 842 03b0 130101FF 		addi	sp,sp,-16
+ 843              		.cfi_def_cfa_offset 16
+ 844 03b4 23341100 		sd	ra,8(sp)
+ 845 03b8 23308100 		sd	s0,0(sp)
+ 846              		.cfi_offset 1, -8
+ 847              		.cfi_offset 8, -16
+ 848 03bc 13040101 		addi	s0,sp,16
+ 849              		.cfi_def_cfa 8, 0
+ 295:src/ubsan.c   **** 	struct ubsan_invalid_value_data *data =
+ 850              		.loc 1 295 2
+ 851              	.LVL91:
+ 296:src/ubsan.c   **** 		(struct ubsan_invalid_value_data *)data_raw;
+ 297:src/ubsan.c   **** 	ubsan_value_handle_t value = (ubsan_value_handle_t)value_raw;
+ 852              		.loc 1 297 2
+ 298:src/ubsan.c   **** 	(void)value;
+ 853              		.loc 1 298 2
+ 299:src/ubsan.c   **** 	ubsan_abort(&data->location, "invalid value load");
+ 854              		.loc 1 299 2
+ 855 03c0 97050000 		lla	a1,.LC20
+ 855      93850500 
+ 856              	.LVL92:
+ 857 03c8 97000000 		call	ubsan_abort
+ 857      E7800000 
+ 858              	.LVL93:
+ 859              		.cfi_endproc
+ 860              	.LFE25:
+ 862              		.align	2
+ 863              		.globl	__ubsan_handle_load_invalid_value_abort
+ 865              	__ubsan_handle_load_invalid_value_abort:
+ 866              	.LFB26:
+ 300:src/ubsan.c   **** }
+ 301:src/ubsan.c   **** 
+GAS LISTING /tmp/cci2iscS.s 			page 23
+
+
+ 302:src/ubsan.c   **** ABORT_VARIANT_VP_VP(load_invalid_value);
+ 867              		.loc 1 302 1
+ 868              		.cfi_startproc
+ 869              	.LVL94:
+ 870 03d0 130101FF 		addi	sp,sp,-16
+ 871              		.cfi_def_cfa_offset 16
+ 872 03d4 23341100 		sd	ra,8(sp)
+ 873 03d8 23308100 		sd	s0,0(sp)
+ 874              		.cfi_offset 1, -8
+ 875              		.cfi_offset 8, -16
+ 876 03dc 13040101 		addi	s0,sp,16
+ 877              		.cfi_def_cfa 8, 0
+ 878              		.loc 1 302 1
+ 879 03e0 97000000 		call	__ubsan_handle_load_invalid_value
+ 879      E7800000 
+ 880              	.LVL95:
+ 881              		.cfi_endproc
+ 882              	.LFE26:
+ 884              		.section	.rodata.str1.8
+ 885 01bb 00000000 		.align	3
+ 885      00
+ 886              	.LC21:
+ 887 01c0 66756E63 		.string	"function type mismatch"
+ 887      74696F6E 
+ 887      20747970 
+ 887      65206D69 
+ 887      736D6174 
+ 888              		.text
+ 889              		.align	2
+ 890              		.globl	__ubsan_handle_function_type_mismatch_v1
+ 892              	__ubsan_handle_function_type_mismatch_v1:
+ 893              	.LFB27:
+ 303:src/ubsan.c   **** 
+ 304:src/ubsan.c   **** struct ubsan_function_type_mismatch_v1_data {
+ 305:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 306:src/ubsan.c   **** 	struct ubsan_type_descriptor *type;
+ 307:src/ubsan.c   **** };
+ 308:src/ubsan.c   **** 
+ 309:src/ubsan.c   **** void __ubsan_handle_function_type_mismatch_v1(void *data_raw, void *value_raw)
+ 310:src/ubsan.c   **** {
+ 894              		.loc 1 310 1
+ 895              		.cfi_startproc
+ 896              	.LVL96:
+ 897 03e8 130101FF 		addi	sp,sp,-16
+ 898              		.cfi_def_cfa_offset 16
+ 899 03ec 23341100 		sd	ra,8(sp)
+ 900 03f0 23308100 		sd	s0,0(sp)
+ 901              		.cfi_offset 1, -8
+ 902              		.cfi_offset 8, -16
+ 903 03f4 13040101 		addi	s0,sp,16
+ 904              		.cfi_def_cfa 8, 0
+ 311:src/ubsan.c   **** 	struct ubsan_function_type_mismatch_v1_data *data =
+ 905              		.loc 1 311 2
+ 906              	.LVL97:
+ 312:src/ubsan.c   **** 		(struct ubsan_function_type_mismatch_v1_data *)data_raw;
+ 313:src/ubsan.c   **** 	ubsan_value_handle_t value = (ubsan_value_handle_t)value_raw;
+ 907              		.loc 1 313 2
+GAS LISTING /tmp/cci2iscS.s 			page 24
+
+
+ 314:src/ubsan.c   **** 	(void)value;
+ 908              		.loc 1 314 2
+ 315:src/ubsan.c   **** 	ubsan_abort(&data->location, "function type mismatch");
+ 909              		.loc 1 315 2
+ 910 03f8 97050000 		lla	a1,.LC21
+ 910      93850500 
+ 911              	.LVL98:
+ 912 0400 97000000 		call	ubsan_abort
+ 912      E7800000 
+ 913              	.LVL99:
+ 914              		.cfi_endproc
+ 915              	.LFE27:
+ 917              		.align	2
+ 918              		.globl	__ubsan_handle_function_type_mismatch_v1_abort
+ 920              	__ubsan_handle_function_type_mismatch_v1_abort:
+ 921              	.LFB28:
+ 316:src/ubsan.c   **** }
+ 317:src/ubsan.c   **** 
+ 318:src/ubsan.c   **** ABORT_VARIANT_VP_VP(function_type_mismatch_v1);
+ 922              		.loc 1 318 1
+ 923              		.cfi_startproc
+ 924              	.LVL100:
+ 925 0408 130101FF 		addi	sp,sp,-16
+ 926              		.cfi_def_cfa_offset 16
+ 927 040c 23341100 		sd	ra,8(sp)
+ 928 0410 23308100 		sd	s0,0(sp)
+ 929              		.cfi_offset 1, -8
+ 930              		.cfi_offset 8, -16
+ 931 0414 13040101 		addi	s0,sp,16
+ 932              		.cfi_def_cfa 8, 0
+ 933              		.loc 1 318 1
+ 934 0418 97000000 		call	__ubsan_handle_function_type_mismatch_v1
+ 934      E7800000 
+ 935              	.LVL101:
+ 936              		.cfi_endproc
+ 937              	.LFE28:
+ 939              		.section	.rodata.str1.8
+ 940 01d7 00       		.align	3
+ 941              	.LC22:
+ 942 01d8 6E756C6C 		.string	"null return"
+ 942      20726574 
+ 942      75726E00 
+ 943              		.text
+ 944              		.align	2
+ 945              		.globl	__ubsan_handle_nonnull_return
+ 947              	__ubsan_handle_nonnull_return:
+ 948              	.LFB29:
+ 319:src/ubsan.c   **** 
+ 320:src/ubsan.c   **** struct ubsan_nonnull_return_data {
+ 321:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 322:src/ubsan.c   **** 	struct ubsan_source_location attr_location;
+ 323:src/ubsan.c   **** };
+ 324:src/ubsan.c   **** 
+ 325:src/ubsan.c   **** void __ubsan_handle_nonnull_return(void *data_raw)
+ 326:src/ubsan.c   **** {
+ 949              		.loc 1 326 1
+ 950              		.cfi_startproc
+GAS LISTING /tmp/cci2iscS.s 			page 25
+
+
+ 951              	.LVL102:
+ 952 0420 130101FF 		addi	sp,sp,-16
+ 953              		.cfi_def_cfa_offset 16
+ 954 0424 23341100 		sd	ra,8(sp)
+ 955 0428 23308100 		sd	s0,0(sp)
+ 956              		.cfi_offset 1, -8
+ 957              		.cfi_offset 8, -16
+ 958 042c 13040101 		addi	s0,sp,16
+ 959              		.cfi_def_cfa 8, 0
+ 327:src/ubsan.c   **** 	struct ubsan_nonnull_return_data *data =
+ 960              		.loc 1 327 2
+ 961              	.LVL103:
+ 328:src/ubsan.c   **** 		(struct ubsan_nonnull_return_data *)data_raw;
+ 329:src/ubsan.c   **** 	ubsan_abort(&data->location, "null return");
+ 962              		.loc 1 329 2
+ 963 0430 97050000 		lla	a1,.LC22
+ 963      93850500 
+ 964 0438 97000000 		call	ubsan_abort
+ 964      E7800000 
+ 965              	.LVL104:
+ 966              		.cfi_endproc
+ 967              	.LFE29:
+ 969              		.align	2
+ 970              		.globl	__ubsan_handle_nonnull_return_abort
+ 972              	__ubsan_handle_nonnull_return_abort:
+ 973              	.LFB30:
+ 330:src/ubsan.c   **** }
+ 331:src/ubsan.c   **** 
+ 332:src/ubsan.c   **** ABORT_VARIANT_VP(nonnull_return);
+ 974              		.loc 1 332 1
+ 975              		.cfi_startproc
+ 976              	.LVL105:
+ 977 0440 130101FF 		addi	sp,sp,-16
+ 978              		.cfi_def_cfa_offset 16
+ 979 0444 23341100 		sd	ra,8(sp)
+ 980 0448 23308100 		sd	s0,0(sp)
+ 981              		.cfi_offset 1, -8
+ 982              		.cfi_offset 8, -16
+ 983 044c 13040101 		addi	s0,sp,16
+ 984              		.cfi_def_cfa 8, 0
+ 985              		.loc 1 332 1
+ 986 0450 97000000 		call	__ubsan_handle_nonnull_return
+ 986      E7800000 
+ 987              	.LVL106:
+ 988              		.cfi_endproc
+ 989              	.LFE30:
+ 991              		.section	.rodata.str1.8
+ 992 01e4 00000000 		.align	3
+ 993              	.LC23:
+ 994 01e8 6E756C6C 		.string	"null argument"
+ 994      20617267 
+ 994      756D656E 
+ 994      7400
+ 995              		.text
+ 996              		.align	2
+ 997              		.globl	__ubsan_handle_nonnull_arg
+ 999              	__ubsan_handle_nonnull_arg:
+GAS LISTING /tmp/cci2iscS.s 			page 26
+
+
+ 1000              	.LFB31:
+ 333:src/ubsan.c   **** 
+ 334:src/ubsan.c   **** struct ubsan_nonnull_arg_data {
+ 335:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 336:src/ubsan.c   **** 	struct ubsan_source_location attr_location;
+ 337:src/ubsan.c   **** };
+ 338:src/ubsan.c   **** 
+ 339:src/ubsan.c   **** /* TODO: GCC's libubsan does not have the second parameter, but its builtin
+ 340:src/ubsan.c   ****  *       somehow has it and conflict if we don't match it.
+ 341:src/ubsan.c   ****  */
+ 342:src/ubsan.c   **** void __ubsan_handle_nonnull_arg(void *data_raw, intptr_t index_raw)
+ 343:src/ubsan.c   **** {
+ 1001              		.loc 1 343 1
+ 1002              		.cfi_startproc
+ 1003              	.LVL107:
+ 1004 0458 130101FF 		addi	sp,sp,-16
+ 1005              		.cfi_def_cfa_offset 16
+ 1006 045c 23341100 		sd	ra,8(sp)
+ 1007 0460 23308100 		sd	s0,0(sp)
+ 1008              		.cfi_offset 1, -8
+ 1009              		.cfi_offset 8, -16
+ 1010 0464 13040101 		addi	s0,sp,16
+ 1011              		.cfi_def_cfa 8, 0
+ 344:src/ubsan.c   **** 	struct ubsan_nonnull_arg_data *data =
+ 1012              		.loc 1 344 2
+ 1013              	.LVL108:
+ 345:src/ubsan.c   **** 		(struct ubsan_nonnull_arg_data *)data_raw;
+ 346:src/ubsan.c   **** 	ubsan_value_handle_t index = (ubsan_value_handle_t)index_raw;
+ 1014              		.loc 1 346 2
+ 347:src/ubsan.c   **** 	(void)index;
+ 1015              		.loc 1 347 2
+ 348:src/ubsan.c   **** 	ubsan_abort(&data->location, "null argument");
+ 1016              		.loc 1 348 2
+ 1017 0468 97050000 		lla	a1,.LC23
+ 1017      93850500 
+ 1018              	.LVL109:
+ 1019 0470 97000000 		call	ubsan_abort
+ 1019      E7800000 
+ 1020              	.LVL110:
+ 1021              		.cfi_endproc
+ 1022              	.LFE31:
+ 1024              		.align	2
+ 1025              		.globl	__ubsan_handle_nonnull_arg_abort
+ 1027              	__ubsan_handle_nonnull_arg_abort:
+ 1028              	.LFB32:
+ 349:src/ubsan.c   **** }
+ 350:src/ubsan.c   **** 
+ 351:src/ubsan.c   **** ABORT_VARIANT_VP_IP(nonnull_arg);
+ 1029              		.loc 1 351 1
+ 1030              		.cfi_startproc
+ 1031              	.LVL111:
+ 1032 0478 130101FF 		addi	sp,sp,-16
+ 1033              		.cfi_def_cfa_offset 16
+ 1034 047c 23341100 		sd	ra,8(sp)
+ 1035 0480 23308100 		sd	s0,0(sp)
+ 1036              		.cfi_offset 1, -8
+ 1037              		.cfi_offset 8, -16
+GAS LISTING /tmp/cci2iscS.s 			page 27
+
+
+ 1038 0484 13040101 		addi	s0,sp,16
+ 1039              		.cfi_def_cfa 8, 0
+ 1040              		.loc 1 351 1
+ 1041 0488 97000000 		call	__ubsan_handle_nonnull_arg
+ 1041      E7800000 
+ 1042              	.LVL112:
+ 1043              		.cfi_endproc
+ 1044              	.LFE32:
+ 1046              		.section	.rodata.str1.8
+ 1047 01f6 0000     		.align	3
+ 1048              	.LC24:
+ 1049 01f8 636F6E74 		.string	"control flow integrity check failure during indirect call"
+ 1049      726F6C20 
+ 1049      666C6F77 
+ 1049      20696E74 
+ 1049      65677269 
+ 1050              		.text
+ 1051              		.align	2
+ 1052              		.globl	__ubsan_handle_cfi_bad_icall
+ 1054              	__ubsan_handle_cfi_bad_icall:
+ 1055              	.LFB33:
+ 352:src/ubsan.c   **** 
+ 353:src/ubsan.c   **** struct ubsan_cfi_bad_icall_data {
+ 354:src/ubsan.c   **** 	struct ubsan_source_location location;
+ 355:src/ubsan.c   **** 	struct ubsan_type_descriptor *type;
+ 356:src/ubsan.c   **** };
+ 357:src/ubsan.c   **** 
+ 358:src/ubsan.c   **** void __ubsan_handle_cfi_bad_icall(void *data_raw, void *value_raw)
+ 359:src/ubsan.c   **** {
+ 1056              		.loc 1 359 1
+ 1057              		.cfi_startproc
+ 1058              	.LVL113:
+ 1059 0490 130101FF 		addi	sp,sp,-16
+ 1060              		.cfi_def_cfa_offset 16
+ 1061 0494 23341100 		sd	ra,8(sp)
+ 1062 0498 23308100 		sd	s0,0(sp)
+ 1063              		.cfi_offset 1, -8
+ 1064              		.cfi_offset 8, -16
+ 1065 049c 13040101 		addi	s0,sp,16
+ 1066              		.cfi_def_cfa 8, 0
+ 360:src/ubsan.c   **** 	struct ubsan_cfi_bad_icall_data *data =
+ 1067              		.loc 1 360 2
+ 1068              	.LVL114:
+ 361:src/ubsan.c   **** 		(struct ubsan_cfi_bad_icall_data *)data_raw;
+ 362:src/ubsan.c   **** 	ubsan_value_handle_t value = (ubsan_value_handle_t)value_raw;
+ 1069              		.loc 1 362 2
+ 363:src/ubsan.c   **** 	(void)value;
+ 1070              		.loc 1 363 2
+ 364:src/ubsan.c   **** 	ubsan_abort(
+ 1071              		.loc 1 364 2
+ 1072 04a0 97050000 		lla	a1,.LC24
+ 1072      93850500 
+ 1073              	.LVL115:
+ 1074 04a8 97000000 		call	ubsan_abort
+ 1074      E7800000 
+ 1075              	.LVL116:
+ 1076              		.cfi_endproc
+GAS LISTING /tmp/cci2iscS.s 			page 28
+
+
+ 1077              	.LFE33:
+ 1079              		.align	2
+ 1080              		.globl	__ubsan_handle_cfi_bad_icall_abort
+ 1082              	__ubsan_handle_cfi_bad_icall_abort:
+ 1083              	.LFB34:
+ 365:src/ubsan.c   **** 		&data->location,
+ 366:src/ubsan.c   **** 		"control flow integrity check failure during indirect call");
+ 367:src/ubsan.c   **** }
+ 368:src/ubsan.c   **** 
+ 369:src/ubsan.c   **** ABORT_VARIANT_VP_VP(cfi_bad_icall);
+ 1084              		.loc 1 369 1
+ 1085              		.cfi_startproc
+ 1086              	.LVL117:
+ 1087 04b0 130101FF 		addi	sp,sp,-16
+ 1088              		.cfi_def_cfa_offset 16
+ 1089 04b4 23341100 		sd	ra,8(sp)
+ 1090 04b8 23308100 		sd	s0,0(sp)
+ 1091              		.cfi_offset 1, -8
+ 1092              		.cfi_offset 8, -16
+ 1093 04bc 13040101 		addi	s0,sp,16
+ 1094              		.cfi_def_cfa 8, 0
+ 1095              		.loc 1 369 1
+ 1096 04c0 97000000 		call	__ubsan_handle_cfi_bad_icall
+ 1096      E7800000 
+ 1097              	.LVL118:
+ 1098              		.cfi_endproc
+ 1099              	.LFE34:
+ 1101              		.section	.rodata.str1.8
+ 1102 0232 00000000 		.align	3
+ 1102      0000
+ 1103              	.LC25:
+ 1104 0238 3C756E6B 		.string	"<unknown file>"
+ 1104      6E6F776E 
+ 1104      2066696C 
+ 1104      653E00
+ 1105              		.section	.rodata
+ 1106              		.align	3
+ 1107              		.set	.LANCHOR0,. + 0
+ 1110              	unknown_location:
+ 1111 0000 00000000 		.dword	.LC25
+ 1111      00000000 
+ 1112 0008 00000000 		.word	0
+ 1113 000c 00000000 		.word	0
+ 1114              		.text
+ 1115              	.Letext0:
+ 1116              		.file 2 "/usr/lib/gcc-cross/riscv64-linux-gnu/9/include/stdint-gcc.h"
+ 1117              		.file 3 "src/../h/../lib/hw.h"
+ 1118              		.file 4 "src/../h/print.hpp"
+GAS LISTING /tmp/cci2iscS.s 			page 29
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 ubsan.c
+     /tmp/cci2iscS.s:26     .text:0000000000000000 ubsan_abort
+     /tmp/cci2iscS.s:30     .text:0000000000000000 .L0 
+     /tmp/cci2iscS.s:32     .text:0000000000000000 .L0 
+     /tmp/cci2iscS.s:33     .text:0000000000000004 .L0 
+     /tmp/cci2iscS.s:38     .text:0000000000000014 .L0 
+     /tmp/cci2iscS.s:39     .text:0000000000000014 .L0 
+     /tmp/cci2iscS.s:40     .text:0000000000000014 .L0 
+     /tmp/cci2iscS.s:41     .text:0000000000000014 .L0 
+     /tmp/cci2iscS.s:43     .text:0000000000000018 .L0 
+     /tmp/cci2iscS.s:46     .text:000000000000001c .L0 
+     /tmp/cci2iscS.s:47     .text:000000000000001c .L0 
+     /tmp/cci2iscS.s:50     .text:0000000000000024 .L0 
+     /tmp/cci2iscS.s:52     .text:0000000000000028 .L0 
+     /tmp/cci2iscS.s:56     .text:000000000000002c .L0 
+     /tmp/cci2iscS.s:60     .text:000000000000003c .L0 
+     /tmp/cci2iscS.s:64     .text:0000000000000048 .L0 
+     /tmp/cci2iscS.s:68     .text:0000000000000058 .L0 
+     /tmp/cci2iscS.s:72     .text:0000000000000064 .L0 
+     /tmp/cci2iscS.s:76     .text:0000000000000074 .L0 
+     /tmp/cci2iscS.s:80     .text:0000000000000080 .L0 
+     /tmp/cci2iscS.s:84     .text:0000000000000090 .L0 
+     /tmp/cci2iscS.s:88     .text:000000000000009c .L0 
+     /tmp/cci2iscS.s:93     .text:00000000000000ac .L0 
+         src/ubsan.c:64     .text:00000000000000ac .L0 
+     /tmp/cci2iscS.s:100    .text:00000000000000b0 .L0 
+     /tmp/cci2iscS.s:104    .text:00000000000000b4 .L0 
+     /tmp/cci2iscS.s:111    .text:00000000000000cc .L0 
+     /tmp/cci2iscS.s:128    .text:00000000000000cc __ubsan_handle_type_mismatch_v1
+     /tmp/cci2iscS.s:131    .text:00000000000000cc .L0 
+     /tmp/cci2iscS.s:133    .text:00000000000000cc .L0 
+     /tmp/cci2iscS.s:134    .text:00000000000000d0 .L0 
+     /tmp/cci2iscS.s:137    .text:00000000000000d8 .L0 
+     /tmp/cci2iscS.s:138    .text:00000000000000d8 .L0 
+     /tmp/cci2iscS.s:140    .text:00000000000000dc .L0 
+     /tmp/cci2iscS.s:143    .text:00000000000000dc .L0 
+     /tmp/cci2iscS.s:144    .text:00000000000000dc .L0 
+     /tmp/cci2iscS.s:145    .text:00000000000000dc .L0 
+     /tmp/cci2iscS.s:146    .text:00000000000000dc .L0 
+     /tmp/cci2iscS.s:147    .text:00000000000000dc .L0 
+     /tmp/cci2iscS.s:149    .text:00000000000000e0 .L0 
+     /tmp/cci2iscS.s:150    .text:00000000000000e0 .L0 
+     /tmp/cci2iscS.s:152    .text:00000000000000e4 .L0 
+     /tmp/cci2iscS.s:154    .text:00000000000000e8 .L0 
+     /tmp/cci2iscS.s:156    .text:00000000000000ec .L0 
+     /tmp/cci2iscS.s:159    .text:00000000000000f0 .L0 
+     /tmp/cci2iscS.s:161    .text:00000000000000f4 .L0 
+     /tmp/cci2iscS.s:166    .text:0000000000000100 .L0 
+     /tmp/cci2iscS.s:172    .text:000000000000010c .L0 
+     /tmp/cci2iscS.s:176    .text:0000000000000114 .L0 
+     /tmp/cci2iscS.s:180    .text:000000000000011c .L0 
+     /tmp/cci2iscS.s:182    .text:0000000000000128 .L0 
+     /tmp/cci2iscS.s:188    .text:0000000000000128 __ubsan_handle_type_mismatch_v1_abort
+     /tmp/cci2iscS.s:191    .text:0000000000000128 .L0 
+     /tmp/cci2iscS.s:193    .text:0000000000000128 .L0 
+     /tmp/cci2iscS.s:194    .text:000000000000012c .L0 
+GAS LISTING /tmp/cci2iscS.s 			page 30
+
+
+     /tmp/cci2iscS.s:197    .text:0000000000000134 .L0 
+     /tmp/cci2iscS.s:198    .text:0000000000000134 .L0 
+     /tmp/cci2iscS.s:200    .text:0000000000000138 .L0 
+     /tmp/cci2iscS.s:202    .text:0000000000000138 .L0 
+     /tmp/cci2iscS.s:204    .text:0000000000000140 .L0 
+     /tmp/cci2iscS.s:215    .text:0000000000000140 __ubsan_handle_pointer_overflow
+     /tmp/cci2iscS.s:218    .text:0000000000000140 .L0 
+     /tmp/cci2iscS.s:220    .text:0000000000000140 .L0 
+     /tmp/cci2iscS.s:221    .text:0000000000000144 .L0 
+     /tmp/cci2iscS.s:224    .text:000000000000014c .L0 
+     /tmp/cci2iscS.s:225    .text:000000000000014c .L0 
+     /tmp/cci2iscS.s:227    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:230    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:231    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:232    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:233    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:234    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:235    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:239    .text:0000000000000160 .L0 
+     /tmp/cci2iscS.s:245    .text:0000000000000160 __ubsan_handle_pointer_overflow_abort
+     /tmp/cci2iscS.s:248    .text:0000000000000160 .L0 
+     /tmp/cci2iscS.s:250    .text:0000000000000160 .L0 
+     /tmp/cci2iscS.s:251    .text:0000000000000164 .L0 
+     /tmp/cci2iscS.s:254    .text:000000000000016c .L0 
+     /tmp/cci2iscS.s:255    .text:000000000000016c .L0 
+     /tmp/cci2iscS.s:257    .text:0000000000000170 .L0 
+     /tmp/cci2iscS.s:259    .text:0000000000000170 .L0 
+     /tmp/cci2iscS.s:261    .text:0000000000000178 .L0 
+     /tmp/cci2iscS.s:272    .text:0000000000000178 __ubsan_handle_add_overflow
+     /tmp/cci2iscS.s:275    .text:0000000000000178 .L0 
+     /tmp/cci2iscS.s:277    .text:0000000000000178 .L0 
+     /tmp/cci2iscS.s:278    .text:000000000000017c .L0 
+     /tmp/cci2iscS.s:281    .text:0000000000000184 .L0 
+     /tmp/cci2iscS.s:282    .text:0000000000000184 .L0 
+     /tmp/cci2iscS.s:284    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:287    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:288    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:289    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:290    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:291    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:292    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:296    .text:0000000000000198 .L0 
+     /tmp/cci2iscS.s:302    .text:0000000000000198 __ubsan_handle_add_overflow_abort
+     /tmp/cci2iscS.s:305    .text:0000000000000198 .L0 
+     /tmp/cci2iscS.s:307    .text:0000000000000198 .L0 
+     /tmp/cci2iscS.s:308    .text:000000000000019c .L0 
+     /tmp/cci2iscS.s:311    .text:00000000000001a4 .L0 
+     /tmp/cci2iscS.s:312    .text:00000000000001a4 .L0 
+     /tmp/cci2iscS.s:314    .text:00000000000001a8 .L0 
+     /tmp/cci2iscS.s:316    .text:00000000000001a8 .L0 
+     /tmp/cci2iscS.s:318    .text:00000000000001b0 .L0 
+     /tmp/cci2iscS.s:329    .text:00000000000001b0 __ubsan_handle_sub_overflow
+     /tmp/cci2iscS.s:332    .text:00000000000001b0 .L0 
+     /tmp/cci2iscS.s:334    .text:00000000000001b0 .L0 
+     /tmp/cci2iscS.s:335    .text:00000000000001b4 .L0 
+     /tmp/cci2iscS.s:338    .text:00000000000001bc .L0 
+     /tmp/cci2iscS.s:339    .text:00000000000001bc .L0 
+GAS LISTING /tmp/cci2iscS.s 			page 31
+
+
+     /tmp/cci2iscS.s:341    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:344    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:345    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:346    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:347    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:348    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:349    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:353    .text:00000000000001d0 .L0 
+     /tmp/cci2iscS.s:359    .text:00000000000001d0 __ubsan_handle_sub_overflow_abort
+     /tmp/cci2iscS.s:362    .text:00000000000001d0 .L0 
+     /tmp/cci2iscS.s:364    .text:00000000000001d0 .L0 
+     /tmp/cci2iscS.s:365    .text:00000000000001d4 .L0 
+     /tmp/cci2iscS.s:368    .text:00000000000001dc .L0 
+     /tmp/cci2iscS.s:369    .text:00000000000001dc .L0 
+     /tmp/cci2iscS.s:371    .text:00000000000001e0 .L0 
+     /tmp/cci2iscS.s:373    .text:00000000000001e0 .L0 
+     /tmp/cci2iscS.s:375    .text:00000000000001e8 .L0 
+     /tmp/cci2iscS.s:386    .text:00000000000001e8 __ubsan_handle_mul_overflow
+     /tmp/cci2iscS.s:389    .text:00000000000001e8 .L0 
+     /tmp/cci2iscS.s:391    .text:00000000000001e8 .L0 
+     /tmp/cci2iscS.s:392    .text:00000000000001ec .L0 
+     /tmp/cci2iscS.s:395    .text:00000000000001f4 .L0 
+     /tmp/cci2iscS.s:396    .text:00000000000001f4 .L0 
+     /tmp/cci2iscS.s:398    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:401    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:402    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:403    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:404    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:405    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:406    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:410    .text:0000000000000208 .L0 
+     /tmp/cci2iscS.s:416    .text:0000000000000208 __ubsan_handle_mul_overflow_abort
+     /tmp/cci2iscS.s:419    .text:0000000000000208 .L0 
+     /tmp/cci2iscS.s:421    .text:0000000000000208 .L0 
+     /tmp/cci2iscS.s:422    .text:000000000000020c .L0 
+     /tmp/cci2iscS.s:425    .text:0000000000000214 .L0 
+     /tmp/cci2iscS.s:426    .text:0000000000000214 .L0 
+     /tmp/cci2iscS.s:428    .text:0000000000000218 .L0 
+     /tmp/cci2iscS.s:430    .text:0000000000000218 .L0 
+     /tmp/cci2iscS.s:432    .text:0000000000000220 .L0 
+     /tmp/cci2iscS.s:443    .text:0000000000000220 __ubsan_handle_negate_overflow
+     /tmp/cci2iscS.s:446    .text:0000000000000220 .L0 
+     /tmp/cci2iscS.s:448    .text:0000000000000220 .L0 
+     /tmp/cci2iscS.s:449    .text:0000000000000224 .L0 
+     /tmp/cci2iscS.s:452    .text:000000000000022c .L0 
+     /tmp/cci2iscS.s:453    .text:000000000000022c .L0 
+     /tmp/cci2iscS.s:455    .text:0000000000000230 .L0 
+     /tmp/cci2iscS.s:458    .text:0000000000000230 .L0 
+     /tmp/cci2iscS.s:459    .text:0000000000000230 .L0 
+     /tmp/cci2iscS.s:460    .text:0000000000000230 .L0 
+     /tmp/cci2iscS.s:461    .text:0000000000000230 .L0 
+     /tmp/cci2iscS.s:465    .text:0000000000000240 .L0 
+     /tmp/cci2iscS.s:471    .text:0000000000000240 __ubsan_handle_negate_overflow_abort
+     /tmp/cci2iscS.s:474    .text:0000000000000240 .L0 
+     /tmp/cci2iscS.s:476    .text:0000000000000240 .L0 
+     /tmp/cci2iscS.s:477    .text:0000000000000244 .L0 
+     /tmp/cci2iscS.s:480    .text:000000000000024c .L0 
+GAS LISTING /tmp/cci2iscS.s 			page 32
+
+
+     /tmp/cci2iscS.s:481    .text:000000000000024c .L0 
+     /tmp/cci2iscS.s:483    .text:0000000000000250 .L0 
+     /tmp/cci2iscS.s:485    .text:0000000000000250 .L0 
+     /tmp/cci2iscS.s:487    .text:0000000000000258 .L0 
+     /tmp/cci2iscS.s:498    .text:0000000000000258 __ubsan_handle_divrem_overflow
+     /tmp/cci2iscS.s:501    .text:0000000000000258 .L0 
+     /tmp/cci2iscS.s:503    .text:0000000000000258 .L0 
+     /tmp/cci2iscS.s:504    .text:000000000000025c .L0 
+     /tmp/cci2iscS.s:507    .text:0000000000000264 .L0 
+     /tmp/cci2iscS.s:508    .text:0000000000000264 .L0 
+     /tmp/cci2iscS.s:510    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:513    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:514    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:515    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:516    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:517    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:518    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:522    .text:0000000000000278 .L0 
+     /tmp/cci2iscS.s:528    .text:0000000000000278 __ubsan_handle_divrem_overflow_abort
+     /tmp/cci2iscS.s:531    .text:0000000000000278 .L0 
+     /tmp/cci2iscS.s:533    .text:0000000000000278 .L0 
+     /tmp/cci2iscS.s:534    .text:000000000000027c .L0 
+     /tmp/cci2iscS.s:537    .text:0000000000000284 .L0 
+     /tmp/cci2iscS.s:538    .text:0000000000000284 .L0 
+     /tmp/cci2iscS.s:540    .text:0000000000000288 .L0 
+     /tmp/cci2iscS.s:542    .text:0000000000000288 .L0 
+     /tmp/cci2iscS.s:544    .text:0000000000000290 .L0 
+     /tmp/cci2iscS.s:555    .text:0000000000000290 __ubsan_handle_shift_out_of_bounds
+     /tmp/cci2iscS.s:558    .text:0000000000000290 .L0 
+     /tmp/cci2iscS.s:560    .text:0000000000000290 .L0 
+     /tmp/cci2iscS.s:561    .text:0000000000000294 .L0 
+     /tmp/cci2iscS.s:564    .text:000000000000029c .L0 
+     /tmp/cci2iscS.s:565    .text:000000000000029c .L0 
+     /tmp/cci2iscS.s:567    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:570    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:571    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:572    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:573    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:574    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:575    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:579    .text:00000000000002b0 .L0 
+     /tmp/cci2iscS.s:585    .text:00000000000002b0 __ubsan_handle_shift_out_of_bounds_abort
+     /tmp/cci2iscS.s:588    .text:00000000000002b0 .L0 
+     /tmp/cci2iscS.s:590    .text:00000000000002b0 .L0 
+     /tmp/cci2iscS.s:591    .text:00000000000002b4 .L0 
+     /tmp/cci2iscS.s:594    .text:00000000000002bc .L0 
+     /tmp/cci2iscS.s:595    .text:00000000000002bc .L0 
+     /tmp/cci2iscS.s:597    .text:00000000000002c0 .L0 
+     /tmp/cci2iscS.s:599    .text:00000000000002c0 .L0 
+     /tmp/cci2iscS.s:601    .text:00000000000002c8 .L0 
+     /tmp/cci2iscS.s:612    .text:00000000000002c8 __ubsan_handle_out_of_bounds
+     /tmp/cci2iscS.s:615    .text:00000000000002c8 .L0 
+     /tmp/cci2iscS.s:617    .text:00000000000002c8 .L0 
+     /tmp/cci2iscS.s:618    .text:00000000000002cc .L0 
+     /tmp/cci2iscS.s:621    .text:00000000000002d4 .L0 
+     /tmp/cci2iscS.s:622    .text:00000000000002d4 .L0 
+     /tmp/cci2iscS.s:624    .text:00000000000002d8 .L0 
+GAS LISTING /tmp/cci2iscS.s 			page 33
+
+
+     /tmp/cci2iscS.s:627    .text:00000000000002d8 .L0 
+     /tmp/cci2iscS.s:628    .text:00000000000002d8 .L0 
+     /tmp/cci2iscS.s:629    .text:00000000000002d8 .L0 
+     /tmp/cci2iscS.s:630    .text:00000000000002d8 .L0 
+     /tmp/cci2iscS.s:634    .text:00000000000002e8 .L0 
+     /tmp/cci2iscS.s:640    .text:00000000000002e8 __ubsan_handle_out_of_bounds_abort
+     /tmp/cci2iscS.s:643    .text:00000000000002e8 .L0 
+     /tmp/cci2iscS.s:645    .text:00000000000002e8 .L0 
+     /tmp/cci2iscS.s:646    .text:00000000000002ec .L0 
+     /tmp/cci2iscS.s:649    .text:00000000000002f4 .L0 
+     /tmp/cci2iscS.s:650    .text:00000000000002f4 .L0 
+     /tmp/cci2iscS.s:652    .text:00000000000002f8 .L0 
+     /tmp/cci2iscS.s:654    .text:00000000000002f8 .L0 
+     /tmp/cci2iscS.s:656    .text:0000000000000300 .L0 
+     /tmp/cci2iscS.s:667    .text:0000000000000300 __ubsan_handle_builtin_unreachable
+     /tmp/cci2iscS.s:670    .text:0000000000000300 .L0 
+     /tmp/cci2iscS.s:672    .text:0000000000000300 .L0 
+     /tmp/cci2iscS.s:673    .text:0000000000000304 .L0 
+     /tmp/cci2iscS.s:676    .text:000000000000030c .L0 
+     /tmp/cci2iscS.s:677    .text:000000000000030c .L0 
+     /tmp/cci2iscS.s:679    .text:0000000000000310 .L0 
+     /tmp/cci2iscS.s:682    .text:0000000000000310 .L0 
+     /tmp/cci2iscS.s:683    .text:0000000000000310 .L0 
+     /tmp/cci2iscS.s:686    .text:0000000000000320 .L0 
+     /tmp/cci2iscS.s:697    .text:0000000000000320 __ubsan_handle_missing_return
+     /tmp/cci2iscS.s:700    .text:0000000000000320 .L0 
+     /tmp/cci2iscS.s:702    .text:0000000000000320 .L0 
+     /tmp/cci2iscS.s:703    .text:0000000000000324 .L0 
+     /tmp/cci2iscS.s:706    .text:000000000000032c .L0 
+     /tmp/cci2iscS.s:707    .text:000000000000032c .L0 
+     /tmp/cci2iscS.s:709    .text:0000000000000330 .L0 
+     /tmp/cci2iscS.s:712    .text:0000000000000330 .L0 
+     /tmp/cci2iscS.s:713    .text:0000000000000330 .L0 
+     /tmp/cci2iscS.s:716    .text:0000000000000340 .L0 
+     /tmp/cci2iscS.s:727    .text:0000000000000340 __ubsan_handle_vla_bound_not_positive
+     /tmp/cci2iscS.s:730    .text:0000000000000340 .L0 
+     /tmp/cci2iscS.s:732    .text:0000000000000340 .L0 
+     /tmp/cci2iscS.s:733    .text:0000000000000344 .L0 
+     /tmp/cci2iscS.s:736    .text:000000000000034c .L0 
+     /tmp/cci2iscS.s:737    .text:000000000000034c .L0 
+     /tmp/cci2iscS.s:739    .text:0000000000000350 .L0 
+     /tmp/cci2iscS.s:742    .text:0000000000000350 .L0 
+     /tmp/cci2iscS.s:743    .text:0000000000000350 .L0 
+     /tmp/cci2iscS.s:744    .text:0000000000000350 .L0 
+     /tmp/cci2iscS.s:745    .text:0000000000000350 .L0 
+     /tmp/cci2iscS.s:749    .text:0000000000000360 .L0 
+     /tmp/cci2iscS.s:755    .text:0000000000000360 __ubsan_handle_vla_bound_not_positive_abort
+     /tmp/cci2iscS.s:758    .text:0000000000000360 .L0 
+     /tmp/cci2iscS.s:760    .text:0000000000000360 .L0 
+     /tmp/cci2iscS.s:761    .text:0000000000000364 .L0 
+     /tmp/cci2iscS.s:764    .text:000000000000036c .L0 
+     /tmp/cci2iscS.s:765    .text:000000000000036c .L0 
+     /tmp/cci2iscS.s:767    .text:0000000000000370 .L0 
+     /tmp/cci2iscS.s:769    .text:0000000000000370 .L0 
+     /tmp/cci2iscS.s:771    .text:0000000000000378 .L0 
+     /tmp/cci2iscS.s:782    .text:0000000000000378 __ubsan_handle_float_cast_overflow
+     /tmp/cci2iscS.s:785    .text:0000000000000378 .L0 
+GAS LISTING /tmp/cci2iscS.s 			page 34
+
+
+     /tmp/cci2iscS.s:787    .text:0000000000000378 .L0 
+     /tmp/cci2iscS.s:788    .text:000000000000037c .L0 
+     /tmp/cci2iscS.s:791    .text:0000000000000384 .L0 
+     /tmp/cci2iscS.s:792    .text:0000000000000384 .L0 
+     /tmp/cci2iscS.s:794    .text:0000000000000388 .L0 
+     /tmp/cci2iscS.s:797    .text:0000000000000388 .L0 
+     /tmp/cci2iscS.s:798    .text:0000000000000388 .L0 
+     /tmp/cci2iscS.s:799    .text:0000000000000388 .L0 
+     /tmp/cci2iscS.s:800    .text:0000000000000388 .L0 
+     /tmp/cci2iscS.s:804    .text:0000000000000398 .L0 
+     /tmp/cci2iscS.s:810    .text:0000000000000398 __ubsan_handle_float_cast_overflow_abort
+     /tmp/cci2iscS.s:813    .text:0000000000000398 .L0 
+     /tmp/cci2iscS.s:815    .text:0000000000000398 .L0 
+     /tmp/cci2iscS.s:816    .text:000000000000039c .L0 
+     /tmp/cci2iscS.s:819    .text:00000000000003a4 .L0 
+     /tmp/cci2iscS.s:820    .text:00000000000003a4 .L0 
+     /tmp/cci2iscS.s:822    .text:00000000000003a8 .L0 
+     /tmp/cci2iscS.s:824    .text:00000000000003a8 .L0 
+     /tmp/cci2iscS.s:826    .text:00000000000003b0 .L0 
+     /tmp/cci2iscS.s:837    .text:00000000000003b0 __ubsan_handle_load_invalid_value
+     /tmp/cci2iscS.s:840    .text:00000000000003b0 .L0 
+     /tmp/cci2iscS.s:842    .text:00000000000003b0 .L0 
+     /tmp/cci2iscS.s:843    .text:00000000000003b4 .L0 
+     /tmp/cci2iscS.s:846    .text:00000000000003bc .L0 
+     /tmp/cci2iscS.s:847    .text:00000000000003bc .L0 
+     /tmp/cci2iscS.s:849    .text:00000000000003c0 .L0 
+     /tmp/cci2iscS.s:852    .text:00000000000003c0 .L0 
+     /tmp/cci2iscS.s:853    .text:00000000000003c0 .L0 
+     /tmp/cci2iscS.s:854    .text:00000000000003c0 .L0 
+     /tmp/cci2iscS.s:855    .text:00000000000003c0 .L0 
+     /tmp/cci2iscS.s:859    .text:00000000000003d0 .L0 
+     /tmp/cci2iscS.s:865    .text:00000000000003d0 __ubsan_handle_load_invalid_value_abort
+     /tmp/cci2iscS.s:868    .text:00000000000003d0 .L0 
+     /tmp/cci2iscS.s:870    .text:00000000000003d0 .L0 
+     /tmp/cci2iscS.s:871    .text:00000000000003d4 .L0 
+     /tmp/cci2iscS.s:874    .text:00000000000003dc .L0 
+     /tmp/cci2iscS.s:875    .text:00000000000003dc .L0 
+     /tmp/cci2iscS.s:877    .text:00000000000003e0 .L0 
+     /tmp/cci2iscS.s:879    .text:00000000000003e0 .L0 
+     /tmp/cci2iscS.s:881    .text:00000000000003e8 .L0 
+     /tmp/cci2iscS.s:892    .text:00000000000003e8 __ubsan_handle_function_type_mismatch_v1
+     /tmp/cci2iscS.s:895    .text:00000000000003e8 .L0 
+     /tmp/cci2iscS.s:897    .text:00000000000003e8 .L0 
+     /tmp/cci2iscS.s:898    .text:00000000000003ec .L0 
+     /tmp/cci2iscS.s:901    .text:00000000000003f4 .L0 
+     /tmp/cci2iscS.s:902    .text:00000000000003f4 .L0 
+     /tmp/cci2iscS.s:904    .text:00000000000003f8 .L0 
+     /tmp/cci2iscS.s:907    .text:00000000000003f8 .L0 
+     /tmp/cci2iscS.s:908    .text:00000000000003f8 .L0 
+     /tmp/cci2iscS.s:909    .text:00000000000003f8 .L0 
+     /tmp/cci2iscS.s:910    .text:00000000000003f8 .L0 
+     /tmp/cci2iscS.s:914    .text:0000000000000408 .L0 
+     /tmp/cci2iscS.s:920    .text:0000000000000408 __ubsan_handle_function_type_mismatch_v1_abort
+     /tmp/cci2iscS.s:923    .text:0000000000000408 .L0 
+     /tmp/cci2iscS.s:925    .text:0000000000000408 .L0 
+     /tmp/cci2iscS.s:926    .text:000000000000040c .L0 
+     /tmp/cci2iscS.s:929    .text:0000000000000414 .L0 
+GAS LISTING /tmp/cci2iscS.s 			page 35
+
+
+     /tmp/cci2iscS.s:930    .text:0000000000000414 .L0 
+     /tmp/cci2iscS.s:932    .text:0000000000000418 .L0 
+     /tmp/cci2iscS.s:934    .text:0000000000000418 .L0 
+     /tmp/cci2iscS.s:936    .text:0000000000000420 .L0 
+     /tmp/cci2iscS.s:947    .text:0000000000000420 __ubsan_handle_nonnull_return
+     /tmp/cci2iscS.s:950    .text:0000000000000420 .L0 
+     /tmp/cci2iscS.s:952    .text:0000000000000420 .L0 
+     /tmp/cci2iscS.s:953    .text:0000000000000424 .L0 
+     /tmp/cci2iscS.s:956    .text:000000000000042c .L0 
+     /tmp/cci2iscS.s:957    .text:000000000000042c .L0 
+     /tmp/cci2iscS.s:959    .text:0000000000000430 .L0 
+     /tmp/cci2iscS.s:962    .text:0000000000000430 .L0 
+     /tmp/cci2iscS.s:963    .text:0000000000000430 .L0 
+     /tmp/cci2iscS.s:966    .text:0000000000000440 .L0 
+     /tmp/cci2iscS.s:972    .text:0000000000000440 __ubsan_handle_nonnull_return_abort
+     /tmp/cci2iscS.s:975    .text:0000000000000440 .L0 
+     /tmp/cci2iscS.s:977    .text:0000000000000440 .L0 
+     /tmp/cci2iscS.s:978    .text:0000000000000444 .L0 
+     /tmp/cci2iscS.s:981    .text:000000000000044c .L0 
+     /tmp/cci2iscS.s:982    .text:000000000000044c .L0 
+     /tmp/cci2iscS.s:984    .text:0000000000000450 .L0 
+     /tmp/cci2iscS.s:986    .text:0000000000000450 .L0 
+     /tmp/cci2iscS.s:988    .text:0000000000000458 .L0 
+     /tmp/cci2iscS.s:999    .text:0000000000000458 __ubsan_handle_nonnull_arg
+     /tmp/cci2iscS.s:1002   .text:0000000000000458 .L0 
+     /tmp/cci2iscS.s:1004   .text:0000000000000458 .L0 
+     /tmp/cci2iscS.s:1005   .text:000000000000045c .L0 
+     /tmp/cci2iscS.s:1008   .text:0000000000000464 .L0 
+     /tmp/cci2iscS.s:1009   .text:0000000000000464 .L0 
+     /tmp/cci2iscS.s:1011   .text:0000000000000468 .L0 
+     /tmp/cci2iscS.s:1014   .text:0000000000000468 .L0 
+     /tmp/cci2iscS.s:1015   .text:0000000000000468 .L0 
+     /tmp/cci2iscS.s:1016   .text:0000000000000468 .L0 
+     /tmp/cci2iscS.s:1017   .text:0000000000000468 .L0 
+     /tmp/cci2iscS.s:1021   .text:0000000000000478 .L0 
+     /tmp/cci2iscS.s:1027   .text:0000000000000478 __ubsan_handle_nonnull_arg_abort
+     /tmp/cci2iscS.s:1030   .text:0000000000000478 .L0 
+     /tmp/cci2iscS.s:1032   .text:0000000000000478 .L0 
+     /tmp/cci2iscS.s:1033   .text:000000000000047c .L0 
+     /tmp/cci2iscS.s:1036   .text:0000000000000484 .L0 
+     /tmp/cci2iscS.s:1037   .text:0000000000000484 .L0 
+     /tmp/cci2iscS.s:1039   .text:0000000000000488 .L0 
+     /tmp/cci2iscS.s:1041   .text:0000000000000488 .L0 
+     /tmp/cci2iscS.s:1043   .text:0000000000000490 .L0 
+     /tmp/cci2iscS.s:1054   .text:0000000000000490 __ubsan_handle_cfi_bad_icall
+     /tmp/cci2iscS.s:1057   .text:0000000000000490 .L0 
+     /tmp/cci2iscS.s:1059   .text:0000000000000490 .L0 
+     /tmp/cci2iscS.s:1060   .text:0000000000000494 .L0 
+     /tmp/cci2iscS.s:1063   .text:000000000000049c .L0 
+     /tmp/cci2iscS.s:1064   .text:000000000000049c .L0 
+     /tmp/cci2iscS.s:1066   .text:00000000000004a0 .L0 
+     /tmp/cci2iscS.s:1069   .text:00000000000004a0 .L0 
+     /tmp/cci2iscS.s:1070   .text:00000000000004a0 .L0 
+     /tmp/cci2iscS.s:1071   .text:00000000000004a0 .L0 
+     /tmp/cci2iscS.s:1072   .text:00000000000004a0 .L0 
+     /tmp/cci2iscS.s:1076   .text:00000000000004b0 .L0 
+     /tmp/cci2iscS.s:1082   .text:00000000000004b0 __ubsan_handle_cfi_bad_icall_abort
+GAS LISTING /tmp/cci2iscS.s 			page 36
+
+
+     /tmp/cci2iscS.s:1085   .text:00000000000004b0 .L0 
+     /tmp/cci2iscS.s:1087   .text:00000000000004b0 .L0 
+     /tmp/cci2iscS.s:1088   .text:00000000000004b4 .L0 
+     /tmp/cci2iscS.s:1091   .text:00000000000004bc .L0 
+     /tmp/cci2iscS.s:1092   .text:00000000000004bc .L0 
+     /tmp/cci2iscS.s:1094   .text:00000000000004c0 .L0 
+     /tmp/cci2iscS.s:1096   .text:00000000000004c0 .L0 
+     /tmp/cci2iscS.s:1098   .text:00000000000004c8 .L0 
+     /tmp/cci2iscS.s:1107   .rodata:0000000000000000 .LANCHOR0
+     /tmp/cci2iscS.s:1110   .rodata:0000000000000000 unknown_location
+     /tmp/cci2iscS.s:1119   .text:00000000000004c8 .L0 
+                     .debug_frame:0000000000000000 .L0 
+     /tmp/cci2iscS.s:9      .rodata.str1.8:0000000000000000 .LC0
+     /tmp/cci2iscS.s:56     .text:000000000000002c .L0 
+     /tmp/cci2iscS.s:12     .rodata.str1.8:0000000000000010 .LC1
+     /tmp/cci2iscS.s:64     .text:0000000000000048 .L0 
+     /tmp/cci2iscS.s:15     .rodata.str1.8:0000000000000020 .LC2
+     /tmp/cci2iscS.s:72     .text:0000000000000064 .L0 
+     /tmp/cci2iscS.s:18     .rodata.str1.8:0000000000000030 .LC3
+     /tmp/cci2iscS.s:80     .text:0000000000000080 .L0 
+     /tmp/cci2iscS.s:21     .rodata.str1.8:0000000000000040 .LC4
+     /tmp/cci2iscS.s:88     .text:000000000000009c .L0 
+     /tmp/cci2iscS.s:104    .text:00000000000000b4 .L0 
+     /tmp/cci2iscS.s:108    .text:00000000000000c0 .L0 
+     /tmp/cci2iscS.s:122    .rodata.str1.8:0000000000000078 .LC7
+     /tmp/cci2iscS.s:161    .text:00000000000000f4 .L0 
+     /tmp/cci2iscS.s:119    .rodata.str1.8:0000000000000060 .LC6
+     /tmp/cci2iscS.s:166    .text:0000000000000100 .L0 
+     /tmp/cci2iscS.s:172    .text:000000000000010c .L0 
+     /tmp/cci2iscS.s:116    .rodata.str1.8:0000000000000048 .LC5
+     /tmp/cci2iscS.s:180    .text:000000000000011c .L0 
+     /tmp/cci2iscS.s:209    .rodata.str1.8:0000000000000088 .LC8
+     /tmp/cci2iscS.s:235    .text:0000000000000150 .L0 
+     /tmp/cci2iscS.s:266    .rodata.str1.8:00000000000000a0 .LC9
+     /tmp/cci2iscS.s:292    .text:0000000000000188 .L0 
+     /tmp/cci2iscS.s:323    .rodata.str1.8:00000000000000b8 .LC10
+     /tmp/cci2iscS.s:349    .text:00000000000001c0 .L0 
+     /tmp/cci2iscS.s:380    .rodata.str1.8:00000000000000d0 .LC11
+     /tmp/cci2iscS.s:406    .text:00000000000001f8 .L0 
+     /tmp/cci2iscS.s:437    .rodata.str1.8:00000000000000e8 .LC12
+     /tmp/cci2iscS.s:461    .text:0000000000000230 .L0 
+     /tmp/cci2iscS.s:492    .rodata.str1.8:0000000000000100 .LC13
+     /tmp/cci2iscS.s:518    .text:0000000000000268 .L0 
+     /tmp/cci2iscS.s:549    .rodata.str1.8:0000000000000120 .LC14
+     /tmp/cci2iscS.s:575    .text:00000000000002a0 .L0 
+     /tmp/cci2iscS.s:606    .rodata.str1.8:0000000000000138 .LC15
+     /tmp/cci2iscS.s:630    .text:00000000000002d8 .L0 
+     /tmp/cci2iscS.s:661    .rodata.str1.8:0000000000000148 .LC16
+     /tmp/cci2iscS.s:683    .text:0000000000000310 .L0 
+     /tmp/cci2iscS.s:691    .rodata.str1.8:0000000000000160 .LC17
+     /tmp/cci2iscS.s:713    .text:0000000000000330 .L0 
+     /tmp/cci2iscS.s:721    .rodata.str1.8:0000000000000170 .LC18
+     /tmp/cci2iscS.s:745    .text:0000000000000350 .L0 
+     /tmp/cci2iscS.s:776    .rodata.str1.8:0000000000000190 .LC19
+     /tmp/cci2iscS.s:800    .text:0000000000000388 .L0 
+     /tmp/cci2iscS.s:831    .rodata.str1.8:00000000000001a8 .LC20
+     /tmp/cci2iscS.s:855    .text:00000000000003c0 .L0 
+GAS LISTING /tmp/cci2iscS.s 			page 37
+
+
+     /tmp/cci2iscS.s:886    .rodata.str1.8:00000000000001c0 .LC21
+     /tmp/cci2iscS.s:910    .text:00000000000003f8 .L0 
+     /tmp/cci2iscS.s:941    .rodata.str1.8:00000000000001d8 .LC22
+     /tmp/cci2iscS.s:963    .text:0000000000000430 .L0 
+     /tmp/cci2iscS.s:993    .rodata.str1.8:00000000000001e8 .LC23
+     /tmp/cci2iscS.s:1017   .text:0000000000000468 .L0 
+     /tmp/cci2iscS.s:1048   .rodata.str1.8:00000000000001f8 .LC24
+     /tmp/cci2iscS.s:1072   .text:00000000000004a0 .L0 
+     /tmp/cci2iscS.s:102    .text:00000000000000b4 .L4
+     /tmp/cci2iscS.s:107    .text:00000000000000c0 .L7
+     /tmp/cci2iscS.s:91     .text:00000000000000ac .L3
+     /tmp/cci2iscS.s:53     .text:000000000000002c .L2
+     /tmp/cci2iscS.s:164    .text:0000000000000100 .L10
+     /tmp/cci2iscS.s:170    .text:000000000000010c .L11
+     /tmp/cci2iscS.s:178    .text:000000000000011c .L12
+     /tmp/cci2iscS.s:174    .text:0000000000000114 .L9
+     /tmp/cci2iscS.s:1103   .rodata.str1.8:0000000000000238 .LC25
+     /tmp/cci2iscS.s:3621   .debug_abbrev:0000000000000000 .Ldebug_abbrev0
+     /tmp/cci2iscS.s:5916   .debug_str:0000000000000030 .LASF111
+     /tmp/cci2iscS.s:6094   .debug_str:000000000000077a .LASF112
+     /tmp/cci2iscS.s:5952   .debug_str:000000000000021f .LASF113
+     /tmp/cci2iscS.s:5      .text:0000000000000000 .Ltext0
+     /tmp/cci2iscS.s:1115   .text:00000000000004c8 .Letext0
+     /tmp/cci2iscS.s:5910   .debug_line:0000000000000000 .Ldebug_line0
+     /tmp/cci2iscS.s:6040   .debug_str:00000000000005af .LASF0
+     /tmp/cci2iscS.s:5932   .debug_str:000000000000014c .LASF1
+     /tmp/cci2iscS.s:5998   .debug_str:00000000000003da .LASF2
+     /tmp/cci2iscS.s:6028   .debug_str:000000000000054a .LASF3
+     /tmp/cci2iscS.s:6050   .debug_str:00000000000005ee .LASF5
+     /tmp/cci2iscS.s:6058   .debug_str:0000000000000645 .LASF4
+     /tmp/cci2iscS.s:6042   .debug_str:00000000000005bb .LASF6
+     /tmp/cci2iscS.s:6048   .debug_str:00000000000005e1 .LASF7
+     /tmp/cci2iscS.s:6096   .debug_str:0000000000000786 .LASF8
+     /tmp/cci2iscS.s:5940   .debug_str:0000000000000170 .LASF9
+     /tmp/cci2iscS.s:5972   .debug_str:0000000000000319 .LASF10
+     /tmp/cci2iscS.s:6002   .debug_str:00000000000003ee .LASF11
+     /tmp/cci2iscS.s:5934   .debug_str:0000000000000156 .LASF12
+     /tmp/cci2iscS.s:6060   .debug_str:0000000000000658 .LASF13
+     /tmp/cci2iscS.s:6046   .debug_str:00000000000005ce .LASF14
+     /tmp/cci2iscS.s:6120   .debug_str:0000000000000880 .LASF15
+     /tmp/cci2iscS.s:5986   .debug_str:0000000000000371 .LASF16
+     /tmp/cci2iscS.s:6076   .debug_str:00000000000006f3 .LASF17
+     /tmp/cci2iscS.s:6108   .debug_str:0000000000000809 .LASF18
+     /tmp/cci2iscS.s:6016   .debug_str:00000000000004a0 .LASF19
+     /tmp/cci2iscS.s:5920   .debug_str:00000000000000dc .LASF20
+     /tmp/cci2iscS.s:5950   .debug_str:0000000000000213 .LASF21
+     /tmp/cci2iscS.s:6088   .debug_str:000000000000073c .LASF22
+     /tmp/cci2iscS.s:5960   .debug_str:00000000000002a1 .LASF23
+     /tmp/cci2iscS.s:5994   .debug_str:00000000000003bc .LASF28
+     /tmp/cci2iscS.s:5974   .debug_str:0000000000000323 .LASF24
+     /tmp/cci2iscS.s:5976   .debug_str:000000000000032c .LASF25
+     /tmp/cci2iscS.s:5924   .debug_str:00000000000000f8 .LASF26
+     /tmp/cci2iscS.s:6064   .debug_str:000000000000068d .LASF27
+     /tmp/cci2iscS.s:6124   .debug_str:00000000000008b9 .LASF29
+     /tmp/cci2iscS.s:5936   .debug_str:000000000000015d .LASF30
+     /tmp/cci2iscS.s:6128   .debug_str:00000000000008f5 .LASF31
+     /tmp/cci2iscS.s:6044   .debug_str:00000000000005c4 .LASF32
+GAS LISTING /tmp/cci2iscS.s 			page 38
+
+
+     /tmp/cci2iscS.s:6112   .debug_str:0000000000000820 .LASF33
+     /tmp/cci2iscS.s:5914   .debug_str:000000000000001f .LASF34
+     /tmp/cci2iscS.s:6022   .debug_str:00000000000004f0 .LASF35
+     /tmp/cci2iscS.s:6106   .debug_str:0000000000000800 .LASF36
+     /tmp/cci2iscS.s:6070   .debug_str:00000000000006b1 .LASF37
+     /tmp/cci2iscS.s:6138   .debug_str:000000000000096f .LASF38
+     /tmp/cci2iscS.s:6114   .debug_str:0000000000000835 .LASF39
+     /tmp/cci2iscS.s:5926   .debug_str:00000000000000ff .LASF40
+     /tmp/cci2iscS.s:6056   .debug_str:0000000000000626 .LASF41
+     /tmp/cci2iscS.s:5938   .debug_str:0000000000000167 .LASF42
+     /tmp/cci2iscS.s:6078   .debug_str:0000000000000702 .LASF43
+     /tmp/cci2iscS.s:5930   .debug_str:0000000000000133 .LASF44
+     /tmp/cci2iscS.s:6030   .debug_str:0000000000000558 .LASF45
+     /tmp/cci2iscS.s:6000   .debug_str:00000000000003e3 .LASF46
+     /tmp/cci2iscS.s:6032   .debug_str:0000000000000563 .LASF47
+     /tmp/cci2iscS.s:6068   .debug_str:000000000000069c .LASF48
+     /tmp/cci2iscS.s:6038   .debug_str:0000000000000590 .LASF49
+     /tmp/cci2iscS.s:5990   .debug_str:0000000000000396 .LASF50
+     /tmp/cci2iscS.s:5996   .debug_str:00000000000003d2 .LASF51
+     /tmp/cci2iscS.s:6080   .debug_str:000000000000070b .LASF52
+     /tmp/cci2iscS.s:6104   .debug_str:00000000000007db .LASF53
+     /tmp/cci2iscS.s:6018   .debug_str:00000000000004b0 .LASF54
+     /tmp/cci2iscS.s:6074   .debug_str:00000000000006e5 .LASF55
+     /tmp/cci2iscS.s:5988   .debug_str:000000000000037f .LASF56
+     /tmp/cci2iscS.s:6012   .debug_str:000000000000046a .LASF57
+     /tmp/cci2iscS.s:6140   .debug_str:0000000000000979 .LASF62
+     /tmp/cci2iscS.s:1083   .text:00000000000004b0 .LFB34
+     /tmp/cci2iscS.s:1099   .text:00000000000004c8 .LFE34
+     /tmp/cci2iscS.s:4178   .debug_loc:0000000000000000 .LLST116
+     /tmp/cci2iscS.s:4192   .debug_loc:0000000000000039 .LLST117
+     /tmp/cci2iscS.s:1097   .text:00000000000004c8 .LVL118
+     /tmp/cci2iscS.s:5954   .debug_str:0000000000000240 .LASF64
+     /tmp/cci2iscS.s:1055   .text:0000000000000490 .LFB33
+     /tmp/cci2iscS.s:1077   .text:00000000000004b0 .LFE33
+     /tmp/cci2iscS.s:6082   .debug_str:0000000000000724 .LASF58
+     /tmp/cci2iscS.s:4206   .debug_loc:0000000000000072 .LLST112
+     /tmp/cci2iscS.s:6084   .debug_str:000000000000072d .LASF59
+     /tmp/cci2iscS.s:4220   .debug_loc:00000000000000ab .LLST113
+     /tmp/cci2iscS.s:6086   .debug_str:0000000000000737 .LASF60
+     /tmp/cci2iscS.s:4234   .debug_loc:00000000000000e4 .LLST114
+     /tmp/cci2iscS.s:5962   .debug_str:00000000000002b7 .LASF61
+     /tmp/cci2iscS.s:4248   .debug_loc:000000000000011d .LLST115
+     /tmp/cci2iscS.s:1075   .text:00000000000004b0 .LVL116
+     /tmp/cci2iscS.s:6136   .debug_str:000000000000094e .LASF63
+     /tmp/cci2iscS.s:1028   .text:0000000000000478 .LFB32
+     /tmp/cci2iscS.s:1044   .text:0000000000000490 .LFE32
+     /tmp/cci2iscS.s:4262   .debug_loc:0000000000000156 .LLST110
+     /tmp/cci2iscS.s:4276   .debug_loc:000000000000018f .LLST111
+     /tmp/cci2iscS.s:1042   .text:0000000000000490 .LVL112
+     /tmp/cci2iscS.s:6102   .debug_str:00000000000007c0 .LASF65
+     /tmp/cci2iscS.s:1000   .text:0000000000000458 .LFB31
+     /tmp/cci2iscS.s:1022   .text:0000000000000478 .LFE31
+     /tmp/cci2iscS.s:4290   .debug_loc:00000000000001c8 .LLST106
+     /tmp/cci2iscS.s:6066   .debug_str:0000000000000692 .LASF66
+     /tmp/cci2iscS.s:4304   .debug_loc:0000000000000201 .LLST107
+     /tmp/cci2iscS.s:4318   .debug_loc:000000000000023a .LLST108
+     /tmp/cci2iscS.s:5968   .debug_str:000000000000030b .LASF67
+GAS LISTING /tmp/cci2iscS.s 			page 39
+
+
+     /tmp/cci2iscS.s:4332   .debug_loc:0000000000000273 .LLST109
+     /tmp/cci2iscS.s:1020   .text:0000000000000478 .LVL110
+     /tmp/cci2iscS.s:5944   .debug_str:00000000000001a5 .LASF68
+     /tmp/cci2iscS.s:973    .text:0000000000000440 .LFB30
+     /tmp/cci2iscS.s:989    .text:0000000000000458 .LFE30
+     /tmp/cci2iscS.s:4346   .debug_loc:00000000000002ac .LLST105
+     /tmp/cci2iscS.s:987    .text:0000000000000458 .LVL106
+     /tmp/cci2iscS.s:6026   .debug_str:000000000000052c .LASF69
+     /tmp/cci2iscS.s:948    .text:0000000000000420 .LFB29
+     /tmp/cci2iscS.s:967    .text:0000000000000440 .LFE29
+     /tmp/cci2iscS.s:4360   .debug_loc:00000000000002e5 .LLST103
+     /tmp/cci2iscS.s:4374   .debug_loc:000000000000031e .LLST104
+     /tmp/cci2iscS.s:965    .text:0000000000000440 .LVL104
+     /tmp/cci2iscS.s:6072   .debug_str:00000000000006b6 .LASF70
+     /tmp/cci2iscS.s:921    .text:0000000000000408 .LFB28
+     /tmp/cci2iscS.s:937    .text:0000000000000420 .LFE28
+     /tmp/cci2iscS.s:4388   .debug_loc:0000000000000357 .LLST101
+     /tmp/cci2iscS.s:4402   .debug_loc:0000000000000390 .LLST102
+     /tmp/cci2iscS.s:935    .text:0000000000000420 .LVL101
+     /tmp/cci2iscS.s:6010   .debug_str:0000000000000441 .LASF71
+     /tmp/cci2iscS.s:893    .text:00000000000003e8 .LFB27
+     /tmp/cci2iscS.s:915    .text:0000000000000408 .LFE27
+     /tmp/cci2iscS.s:4416   .debug_loc:00000000000003c9 .LLST97
+     /tmp/cci2iscS.s:4430   .debug_loc:0000000000000402 .LLST98
+     /tmp/cci2iscS.s:4444   .debug_loc:000000000000043b .LLST99
+     /tmp/cci2iscS.s:4458   .debug_loc:0000000000000474 .LLST100
+     /tmp/cci2iscS.s:913    .text:0000000000000408 .LVL99
+     /tmp/cci2iscS.s:5966   .debug_str:00000000000002e3 .LASF72
+     /tmp/cci2iscS.s:866    .text:00000000000003d0 .LFB26
+     /tmp/cci2iscS.s:882    .text:00000000000003e8 .LFE26
+     /tmp/cci2iscS.s:4472   .debug_loc:00000000000004ad .LLST95
+     /tmp/cci2iscS.s:4486   .debug_loc:00000000000004e6 .LLST96
+     /tmp/cci2iscS.s:880    .text:00000000000003e8 .LVL95
+     /tmp/cci2iscS.s:5956   .debug_str:000000000000025d .LASF73
+     /tmp/cci2iscS.s:838    .text:00000000000003b0 .LFB25
+     /tmp/cci2iscS.s:860    .text:00000000000003d0 .LFE25
+     /tmp/cci2iscS.s:4500   .debug_loc:000000000000051f .LLST91
+     /tmp/cci2iscS.s:4514   .debug_loc:0000000000000558 .LLST92
+     /tmp/cci2iscS.s:4528   .debug_loc:0000000000000591 .LLST93
+     /tmp/cci2iscS.s:4542   .debug_loc:00000000000005ca .LLST94
+     /tmp/cci2iscS.s:858    .text:00000000000003d0 .LVL93
+     /tmp/cci2iscS.s:6122   .debug_str:0000000000000890 .LASF74
+     /tmp/cci2iscS.s:811    .text:0000000000000398 .LFB24
+     /tmp/cci2iscS.s:827    .text:00000000000003b0 .LFE24
+     /tmp/cci2iscS.s:4556   .debug_loc:0000000000000603 .LLST89
+     /tmp/cci2iscS.s:4570   .debug_loc:000000000000063c .LLST90
+     /tmp/cci2iscS.s:825    .text:00000000000003b0 .LVL89
+     /tmp/cci2iscS.s:6008   .debug_str:000000000000041e .LASF75
+     /tmp/cci2iscS.s:783    .text:0000000000000378 .LFB23
+     /tmp/cci2iscS.s:805    .text:0000000000000398 .LFE23
+     /tmp/cci2iscS.s:4584   .debug_loc:0000000000000675 .LLST85
+     /tmp/cci2iscS.s:5982   .debug_str:0000000000000346 .LASF76
+     /tmp/cci2iscS.s:4598   .debug_loc:00000000000006ae .LLST86
+     /tmp/cci2iscS.s:4612   .debug_loc:00000000000006e7 .LLST87
+     /tmp/cci2iscS.s:6100   .debug_str:00000000000007bb .LASF77
+     /tmp/cci2iscS.s:4626   .debug_loc:0000000000000720 .LLST88
+     /tmp/cci2iscS.s:803    .text:0000000000000398 .LVL87
+GAS LISTING /tmp/cci2iscS.s 			page 40
+
+
+     /tmp/cci2iscS.s:5942   .debug_str:0000000000000179 .LASF78
+     /tmp/cci2iscS.s:756    .text:0000000000000360 .LFB22
+     /tmp/cci2iscS.s:772    .text:0000000000000378 .LFE22
+     /tmp/cci2iscS.s:4640   .debug_loc:0000000000000759 .LLST83
+     /tmp/cci2iscS.s:4654   .debug_loc:0000000000000792 .LLST84
+     /tmp/cci2iscS.s:770    .text:0000000000000378 .LVL83
+     /tmp/cci2iscS.s:5964   .debug_str:00000000000002bd .LASF79
+     /tmp/cci2iscS.s:728    .text:0000000000000340 .LFB21
+     /tmp/cci2iscS.s:750    .text:0000000000000360 .LFE21
+     /tmp/cci2iscS.s:4668   .debug_loc:00000000000007cb .LLST79
+     /tmp/cci2iscS.s:6036   .debug_str:0000000000000586 .LASF80
+     /tmp/cci2iscS.s:4682   .debug_loc:0000000000000804 .LLST80
+     /tmp/cci2iscS.s:4696   .debug_loc:000000000000083d .LLST81
+     /tmp/cci2iscS.s:6006   .debug_str:0000000000000418 .LASF81
+     /tmp/cci2iscS.s:4710   .debug_loc:0000000000000876 .LLST82
+     /tmp/cci2iscS.s:748    .text:0000000000000360 .LVL81
+     /tmp/cci2iscS.s:6092   .debug_str:000000000000075c .LASF82
+     /tmp/cci2iscS.s:698    .text:0000000000000320 .LFB20
+     /tmp/cci2iscS.s:717    .text:0000000000000340 .LFE20
+     /tmp/cci2iscS.s:4724   .debug_loc:00000000000008af .LLST77
+     /tmp/cci2iscS.s:4738   .debug_loc:00000000000008e8 .LLST78
+     /tmp/cci2iscS.s:715    .text:0000000000000340 .LVL77
+     /tmp/cci2iscS.s:6004   .debug_str:00000000000003f5 .LASF83
+     /tmp/cci2iscS.s:668    .text:0000000000000300 .LFB19
+     /tmp/cci2iscS.s:687    .text:0000000000000320 .LFE19
+     /tmp/cci2iscS.s:4752   .debug_loc:0000000000000921 .LLST75
+     /tmp/cci2iscS.s:4766   .debug_loc:000000000000095a .LLST76
+     /tmp/cci2iscS.s:685    .text:0000000000000320 .LVL74
+     /tmp/cci2iscS.s:6052   .debug_str:00000000000005f7 .LASF84
+     /tmp/cci2iscS.s:641    .text:00000000000002e8 .LFB18
+     /tmp/cci2iscS.s:657    .text:0000000000000300 .LFE18
+     /tmp/cci2iscS.s:4780   .debug_loc:0000000000000993 .LLST73
+     /tmp/cci2iscS.s:4794   .debug_loc:00000000000009cc .LLST74
+     /tmp/cci2iscS.s:655    .text:0000000000000300 .LVL71
+     /tmp/cci2iscS.s:6014   .debug_str:0000000000000483 .LASF85
+     /tmp/cci2iscS.s:613    .text:00000000000002c8 .LFB17
+     /tmp/cci2iscS.s:635    .text:00000000000002e8 .LFE17
+     /tmp/cci2iscS.s:4808   .debug_loc:0000000000000a05 .LLST69
+     /tmp/cci2iscS.s:4822   .debug_loc:0000000000000a3e .LLST70
+     /tmp/cci2iscS.s:4836   .debug_loc:0000000000000a77 .LLST71
+     /tmp/cci2iscS.s:4850   .debug_loc:0000000000000ab0 .LLST72
+     /tmp/cci2iscS.s:633    .text:00000000000002e8 .LVL69
+     /tmp/cci2iscS.s:6132   .debug_str:0000000000000909 .LASF86
+     /tmp/cci2iscS.s:586    .text:00000000000002b0 .LFB16
+     /tmp/cci2iscS.s:602    .text:00000000000002c8 .LFE16
+     /tmp/cci2iscS.s:4864   .debug_loc:0000000000000ae9 .LLST66
+     /tmp/cci2iscS.s:4878   .debug_loc:0000000000000b22 .LLST67
+     /tmp/cci2iscS.s:4892   .debug_loc:0000000000000b5b .LLST68
+     /tmp/cci2iscS.s:600    .text:00000000000002c8 .LVL65
+     /tmp/cci2iscS.s:6098   .debug_str:0000000000000798 .LASF87
+     /tmp/cci2iscS.s:556    .text:0000000000000290 .LFB15
+     /tmp/cci2iscS.s:580    .text:00000000000002b0 .LFE15
+     /tmp/cci2iscS.s:4906   .debug_loc:0000000000000b94 .LLST60
+     /tmp/cci2iscS.s:5970   .debug_str:0000000000000311 .LASF88
+     /tmp/cci2iscS.s:4920   .debug_loc:0000000000000bcd .LLST61
+     /tmp/cci2iscS.s:5978   .debug_str:0000000000000331 .LASF89
+     /tmp/cci2iscS.s:4934   .debug_loc:0000000000000c06 .LLST62
+GAS LISTING /tmp/cci2iscS.s 			page 41
+
+
+     /tmp/cci2iscS.s:4948   .debug_loc:0000000000000c3f .LLST63
+     /tmp/cci2iscS.s:4962   .debug_loc:0000000000000c78 .LLST64
+     /tmp/cci2iscS.s:4976   .debug_loc:0000000000000cb1 .LLST65
+     /tmp/cci2iscS.s:578    .text:00000000000002b0 .LVL63
+     /tmp/cci2iscS.s:5946   .debug_str:00000000000001c9 .LASF90
+     /tmp/cci2iscS.s:529    .text:0000000000000278 .LFB14
+     /tmp/cci2iscS.s:545    .text:0000000000000290 .LFE14
+     /tmp/cci2iscS.s:4990   .debug_loc:0000000000000cea .LLST57
+     /tmp/cci2iscS.s:5004   .debug_loc:0000000000000d23 .LLST58
+     /tmp/cci2iscS.s:5018   .debug_loc:0000000000000d5c .LLST59
+     /tmp/cci2iscS.s:543    .text:0000000000000290 .LVL59
+     /tmp/cci2iscS.s:6116   .debug_str:0000000000000845 .LASF91
+     /tmp/cci2iscS.s:499    .text:0000000000000258 .LFB13
+     /tmp/cci2iscS.s:523    .text:0000000000000278 .LFE13
+     /tmp/cci2iscS.s:5032   .debug_loc:0000000000000d95 .LLST51
+     /tmp/cci2iscS.s:5046   .debug_loc:0000000000000dce .LLST52
+     /tmp/cci2iscS.s:5060   .debug_loc:0000000000000e07 .LLST53
+     /tmp/cci2iscS.s:5074   .debug_loc:0000000000000e40 .LLST54
+     /tmp/cci2iscS.s:5088   .debug_loc:0000000000000e79 .LLST55
+     /tmp/cci2iscS.s:5102   .debug_loc:0000000000000eb2 .LLST56
+     /tmp/cci2iscS.s:521    .text:0000000000000278 .LVL57
+     /tmp/cci2iscS.s:5948   .debug_str:00000000000001ee .LASF92
+     /tmp/cci2iscS.s:472    .text:0000000000000240 .LFB12
+     /tmp/cci2iscS.s:488    .text:0000000000000258 .LFE12
+     /tmp/cci2iscS.s:5116   .debug_loc:0000000000000eeb .LLST49
+     /tmp/cci2iscS.s:5130   .debug_loc:0000000000000f24 .LLST50
+     /tmp/cci2iscS.s:486    .text:0000000000000258 .LVL53
+     /tmp/cci2iscS.s:5912   .debug_str:0000000000000000 .LASF93
+     /tmp/cci2iscS.s:444    .text:0000000000000220 .LFB11
+     /tmp/cci2iscS.s:466    .text:0000000000000240 .LFE11
+     /tmp/cci2iscS.s:5144   .debug_loc:0000000000000f5d .LLST45
+     /tmp/cci2iscS.s:5918   .debug_str:00000000000000ce .LASF94
+     /tmp/cci2iscS.s:5158   .debug_loc:0000000000000f96 .LLST46
+     /tmp/cci2iscS.s:5172   .debug_loc:0000000000000fcf .LLST47
+     /tmp/cci2iscS.s:6090   .debug_str:0000000000000752 .LASF95
+     /tmp/cci2iscS.s:5186   .debug_loc:0000000000001008 .LLST48
+     /tmp/cci2iscS.s:464    .text:0000000000000240 .LVL51
+     /tmp/cci2iscS.s:5958   .debug_str:000000000000027f .LASF96
+     /tmp/cci2iscS.s:417    .text:0000000000000208 .LFB10
+     /tmp/cci2iscS.s:433    .text:0000000000000220 .LFE10
+     /tmp/cci2iscS.s:5200   .debug_loc:0000000000001041 .LLST42
+     /tmp/cci2iscS.s:5214   .debug_loc:000000000000107a .LLST43
+     /tmp/cci2iscS.s:5228   .debug_loc:00000000000010b3 .LLST44
+     /tmp/cci2iscS.s:431    .text:0000000000000220 .LVL47
+     /tmp/cci2iscS.s:6118   .debug_str:0000000000000864 .LASF97
+     /tmp/cci2iscS.s:387    .text:00000000000001e8 .LFB9
+     /tmp/cci2iscS.s:411    .text:0000000000000208 .LFE9
+     /tmp/cci2iscS.s:5242   .debug_loc:00000000000010ec .LLST36
+     /tmp/cci2iscS.s:5256   .debug_loc:0000000000001125 .LLST37
+     /tmp/cci2iscS.s:5270   .debug_loc:000000000000115e .LLST38
+     /tmp/cci2iscS.s:5284   .debug_loc:0000000000001197 .LLST39
+     /tmp/cci2iscS.s:5298   .debug_loc:00000000000011d0 .LLST40
+     /tmp/cci2iscS.s:5312   .debug_loc:0000000000001209 .LLST41
+     /tmp/cci2iscS.s:409    .text:0000000000000208 .LVL45
+     /tmp/cci2iscS.s:5984   .debug_str:000000000000034f .LASF98
+     /tmp/cci2iscS.s:360    .text:00000000000001d0 .LFB8
+     /tmp/cci2iscS.s:376    .text:00000000000001e8 .LFE8
+GAS LISTING /tmp/cci2iscS.s 			page 42
+
+
+     /tmp/cci2iscS.s:5326   .debug_loc:0000000000001242 .LLST33
+     /tmp/cci2iscS.s:5340   .debug_loc:000000000000127b .LLST34
+     /tmp/cci2iscS.s:5354   .debug_loc:00000000000012b4 .LLST35
+     /tmp/cci2iscS.s:374    .text:00000000000001e8 .LVL41
+     /tmp/cci2iscS.s:6134   .debug_str:0000000000000932 .LASF99
+     /tmp/cci2iscS.s:330    .text:00000000000001b0 .LFB7
+     /tmp/cci2iscS.s:354    .text:00000000000001d0 .LFE7
+     /tmp/cci2iscS.s:5368   .debug_loc:00000000000012ed .LLST27
+     /tmp/cci2iscS.s:5382   .debug_loc:0000000000001326 .LLST28
+     /tmp/cci2iscS.s:5396   .debug_loc:000000000000135f .LLST29
+     /tmp/cci2iscS.s:5410   .debug_loc:0000000000001398 .LLST30
+     /tmp/cci2iscS.s:5424   .debug_loc:00000000000013d1 .LLST31
+     /tmp/cci2iscS.s:5438   .debug_loc:000000000000140a .LLST32
+     /tmp/cci2iscS.s:352    .text:00000000000001d0 .LVL39
+     /tmp/cci2iscS.s:6062   .debug_str:000000000000066b .LASF100
+     /tmp/cci2iscS.s:303    .text:0000000000000198 .LFB6
+     /tmp/cci2iscS.s:319    .text:00000000000001b0 .LFE6
+     /tmp/cci2iscS.s:5452   .debug_loc:0000000000001443 .LLST24
+     /tmp/cci2iscS.s:5466   .debug_loc:000000000000147c .LLST25
+     /tmp/cci2iscS.s:5480   .debug_loc:00000000000014b5 .LLST26
+     /tmp/cci2iscS.s:317    .text:00000000000001b0 .LVL35
+     /tmp/cci2iscS.s:5992   .debug_str:00000000000003a0 .LASF101
+     /tmp/cci2iscS.s:273    .text:0000000000000178 .LFB5
+     /tmp/cci2iscS.s:297    .text:0000000000000198 .LFE5
+     /tmp/cci2iscS.s:5494   .debug_loc:00000000000014ee .LLST18
+     /tmp/cci2iscS.s:5508   .debug_loc:0000000000001527 .LLST19
+     /tmp/cci2iscS.s:5522   .debug_loc:0000000000001560 .LLST20
+     /tmp/cci2iscS.s:5536   .debug_loc:0000000000001599 .LLST21
+     /tmp/cci2iscS.s:5550   .debug_loc:00000000000015d2 .LLST22
+     /tmp/cci2iscS.s:5564   .debug_loc:000000000000160b .LLST23
+     /tmp/cci2iscS.s:295    .text:0000000000000198 .LVL33
+     /tmp/cci2iscS.s:6020   .debug_str:00000000000004ca .LASF102
+     /tmp/cci2iscS.s:246    .text:0000000000000160 .LFB4
+     /tmp/cci2iscS.s:262    .text:0000000000000178 .LFE4
+     /tmp/cci2iscS.s:5578   .debug_loc:0000000000001644 .LLST15
+     /tmp/cci2iscS.s:5592   .debug_loc:000000000000167d .LLST16
+     /tmp/cci2iscS.s:5606   .debug_loc:00000000000016b6 .LLST17
+     /tmp/cci2iscS.s:260    .text:0000000000000178 .LVL29
+     /tmp/cci2iscS.s:6024   .debug_str:000000000000050c .LASF103
+     /tmp/cci2iscS.s:216    .text:0000000000000140 .LFB3
+     /tmp/cci2iscS.s:240    .text:0000000000000160 .LFE3
+     /tmp/cci2iscS.s:5620   .debug_loc:00000000000016ef .LLST9
+     /tmp/cci2iscS.s:5634   .debug_loc:0000000000001728 .LLST10
+     /tmp/cci2iscS.s:5648   .debug_loc:0000000000001761 .LLST11
+     /tmp/cci2iscS.s:5662   .debug_loc:000000000000179a .LLST12
+     /tmp/cci2iscS.s:5676   .debug_loc:00000000000017d3 .LLST13
+     /tmp/cci2iscS.s:5690   .debug_loc:000000000000180c .LLST14
+     /tmp/cci2iscS.s:238    .text:0000000000000160 .LVL27
+     /tmp/cci2iscS.s:6126   .debug_str:00000000000008cf .LASF104
+     /tmp/cci2iscS.s:189    .text:0000000000000128 .LFB2
+     /tmp/cci2iscS.s:205    .text:0000000000000140 .LFE2
+     /tmp/cci2iscS.s:5704   .debug_loc:0000000000001845 .LLST7
+     /tmp/cci2iscS.s:5718   .debug_loc:000000000000187e .LLST8
+     /tmp/cci2iscS.s:203    .text:0000000000000140 .LVL23
+     /tmp/cci2iscS.s:5928   .debug_str:0000000000000113 .LASF105
+     /tmp/cci2iscS.s:129    .text:00000000000000cc .LFB1
+     /tmp/cci2iscS.s:183    .text:0000000000000128 .LFE1
+GAS LISTING /tmp/cci2iscS.s 			page 43
+
+
+     /tmp/cci2iscS.s:5732   .debug_loc:00000000000018b7 .LLST2
+     /tmp/cci2iscS.s:6034   .debug_str:000000000000057a .LASF106
+     /tmp/cci2iscS.s:5750   .debug_loc:0000000000001903 .LLST3
+     /tmp/cci2iscS.s:5786   .debug_loc:000000000000198e .LLST4
+     /tmp/cci2iscS.s:6110   .debug_str:0000000000000818 .LASF107
+     /tmp/cci2iscS.s:5804   .debug_loc:00000000000019da .LLST5
+     /tmp/cci2iscS.s:6130   .debug_str:00000000000008ff .LASF108
+     /tmp/cci2iscS.s:5840   .debug_loc:0000000000001a65 .LLST6
+     /tmp/cci2iscS.s:177    .text:000000000000011c .LVL21
+     /tmp/cci2iscS.s:6054   .debug_str:000000000000061a .LASF114
+     /tmp/cci2iscS.s:27     .text:0000000000000000 .LFB0
+     /tmp/cci2iscS.s:112    .text:00000000000000cc .LFE0
+     /tmp/cci2iscS.s:5859   .debug_loc:0000000000001ac0 .LLST0
+     /tmp/cci2iscS.s:5882   .debug_loc:0000000000001b2f .LLST1
+     /tmp/cci2iscS.s:58     .text:000000000000003c .LVL2
+     /tmp/cci2iscS.s:62     .text:0000000000000048 .LVL3
+     /tmp/cci2iscS.s:66     .text:0000000000000058 .LVL4
+     /tmp/cci2iscS.s:70     .text:0000000000000064 .LVL5
+     /tmp/cci2iscS.s:74     .text:0000000000000074 .LVL6
+     /tmp/cci2iscS.s:78     .text:0000000000000080 .LVL7
+     /tmp/cci2iscS.s:82     .text:0000000000000090 .LVL8
+     /tmp/cci2iscS.s:86     .text:000000000000009c .LVL9
+     /tmp/cci2iscS.s:90     .text:00000000000000ac .LVL10
+     /tmp/cci2iscS.s:5922   .debug_str:00000000000000ec .LASF109
+     /tmp/cci2iscS.s:5980   .debug_str:0000000000000339 .LASF110
+     /tmp/cci2iscS.s:1086   .text:00000000000004b0 .LVL117
+     /tmp/cci2iscS.s:1058   .text:0000000000000490 .LVL113
+     /tmp/cci2iscS.s:1073   .text:00000000000004a8 .LVL115
+     /tmp/cci2iscS.s:1068   .text:00000000000004a0 .LVL114
+     /tmp/cci2iscS.s:1031   .text:0000000000000478 .LVL111
+     /tmp/cci2iscS.s:1003   .text:0000000000000458 .LVL107
+     /tmp/cci2iscS.s:1018   .text:0000000000000470 .LVL109
+     /tmp/cci2iscS.s:1013   .text:0000000000000468 .LVL108
+     /tmp/cci2iscS.s:976    .text:0000000000000440 .LVL105
+     /tmp/cci2iscS.s:951    .text:0000000000000420 .LVL102
+     /tmp/cci2iscS.s:961    .text:0000000000000430 .LVL103
+     /tmp/cci2iscS.s:924    .text:0000000000000408 .LVL100
+     /tmp/cci2iscS.s:896    .text:00000000000003e8 .LVL96
+     /tmp/cci2iscS.s:911    .text:0000000000000400 .LVL98
+     /tmp/cci2iscS.s:906    .text:00000000000003f8 .LVL97
+     /tmp/cci2iscS.s:869    .text:00000000000003d0 .LVL94
+     /tmp/cci2iscS.s:841    .text:00000000000003b0 .LVL90
+     /tmp/cci2iscS.s:856    .text:00000000000003c8 .LVL92
+     /tmp/cci2iscS.s:851    .text:00000000000003c0 .LVL91
+     /tmp/cci2iscS.s:814    .text:0000000000000398 .LVL88
+     /tmp/cci2iscS.s:786    .text:0000000000000378 .LVL84
+     /tmp/cci2iscS.s:801    .text:0000000000000390 .LVL86
+     /tmp/cci2iscS.s:796    .text:0000000000000388 .LVL85
+     /tmp/cci2iscS.s:759    .text:0000000000000360 .LVL82
+     /tmp/cci2iscS.s:731    .text:0000000000000340 .LVL78
+     /tmp/cci2iscS.s:746    .text:0000000000000358 .LVL80
+     /tmp/cci2iscS.s:741    .text:0000000000000350 .LVL79
+     /tmp/cci2iscS.s:701    .text:0000000000000320 .LVL75
+     /tmp/cci2iscS.s:711    .text:0000000000000330 .LVL76
+     /tmp/cci2iscS.s:671    .text:0000000000000300 .LVL72
+     /tmp/cci2iscS.s:681    .text:0000000000000310 .LVL73
+     /tmp/cci2iscS.s:644    .text:00000000000002e8 .LVL70
+GAS LISTING /tmp/cci2iscS.s 			page 44
+
+
+     /tmp/cci2iscS.s:616    .text:00000000000002c8 .LVL66
+     /tmp/cci2iscS.s:631    .text:00000000000002e0 .LVL68
+     /tmp/cci2iscS.s:626    .text:00000000000002d8 .LVL67
+     /tmp/cci2iscS.s:589    .text:00000000000002b0 .LVL64
+     /tmp/cci2iscS.s:559    .text:0000000000000290 .LVL60
+     /tmp/cci2iscS.s:576    .text:00000000000002a8 .LVL62
+     /tmp/cci2iscS.s:569    .text:00000000000002a0 .LVL61
+     /tmp/cci2iscS.s:532    .text:0000000000000278 .LVL58
+     /tmp/cci2iscS.s:502    .text:0000000000000258 .LVL54
+     /tmp/cci2iscS.s:519    .text:0000000000000270 .LVL56
+     /tmp/cci2iscS.s:512    .text:0000000000000268 .LVL55
+     /tmp/cci2iscS.s:475    .text:0000000000000240 .LVL52
+     /tmp/cci2iscS.s:447    .text:0000000000000220 .LVL48
+     /tmp/cci2iscS.s:462    .text:0000000000000238 .LVL50
+     /tmp/cci2iscS.s:457    .text:0000000000000230 .LVL49
+     /tmp/cci2iscS.s:420    .text:0000000000000208 .LVL46
+     /tmp/cci2iscS.s:390    .text:00000000000001e8 .LVL42
+     /tmp/cci2iscS.s:407    .text:0000000000000200 .LVL44
+     /tmp/cci2iscS.s:400    .text:00000000000001f8 .LVL43
+     /tmp/cci2iscS.s:363    .text:00000000000001d0 .LVL40
+     /tmp/cci2iscS.s:333    .text:00000000000001b0 .LVL36
+     /tmp/cci2iscS.s:350    .text:00000000000001c8 .LVL38
+     /tmp/cci2iscS.s:343    .text:00000000000001c0 .LVL37
+     /tmp/cci2iscS.s:306    .text:0000000000000198 .LVL34
+     /tmp/cci2iscS.s:276    .text:0000000000000178 .LVL30
+     /tmp/cci2iscS.s:293    .text:0000000000000190 .LVL32
+     /tmp/cci2iscS.s:286    .text:0000000000000188 .LVL31
+     /tmp/cci2iscS.s:249    .text:0000000000000160 .LVL28
+     /tmp/cci2iscS.s:219    .text:0000000000000140 .LVL24
+     /tmp/cci2iscS.s:236    .text:0000000000000158 .LVL26
+     /tmp/cci2iscS.s:229    .text:0000000000000150 .LVL25
+     /tmp/cci2iscS.s:192    .text:0000000000000128 .LVL22
+     /tmp/cci2iscS.s:132    .text:00000000000000cc .LVL14
+     /tmp/cci2iscS.s:157    .text:00000000000000f0 .LVL16
+     /tmp/cci2iscS.s:163    .text:0000000000000100 .LVL17
+     /tmp/cci2iscS.s:167    .text:0000000000000108 .LVL18
+     /tmp/cci2iscS.s:169    .text:000000000000010c .LVL19
+     /tmp/cci2iscS.s:173    .text:0000000000000114 .LVL20
+     /tmp/cci2iscS.s:142    .text:00000000000000dc .LVL15
+     /tmp/cci2iscS.s:31     .text:0000000000000000 .LVL0
+     /tmp/cci2iscS.s:54     .text:000000000000002c .LVL1
+     /tmp/cci2iscS.s:101    .text:00000000000000b4 .LVL11
+     /tmp/cci2iscS.s:106    .text:00000000000000c0 .LVL12
+     /tmp/cci2iscS.s:109    .text:00000000000000c8 .LVL13
+     /tmp/cci2iscS.s:1120   .debug_info:0000000000000000 .Ldebug_info0
+
+UNDEFINED SYMBOLS
+printString
+printInteger

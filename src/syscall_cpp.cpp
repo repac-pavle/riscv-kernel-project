@@ -1,207 +1,88 @@
 #include "../h/syscall_cpp.hpp"
-#include "../h/types.h"
-#include "../h/threads.h"
-#include "../h/stdio.h"
-#include "../test/printing.hpp"
+#include "../h/syscall_c.hpp"
 
-void memset(const void *destptr, uint8_t value, size_t n)
-{
-	uint8_t *dest = (uint8_t *)destptr;
-	size_t i;
-	for (i = 0; i < n; i++) {
-		dest[i] = value;
-	}
+Semaphore* Thread::maxThreadsSemaphore = nullptr;
+
+Thread::Thread(void (*body)(void *), void *arg) {
+    this->body = body;
+    this->arg = arg;
+    this->myHandle = nullptr;
 }
 
-void * operator new(size_t size)
-{
-	return mem_alloc(size);
+Thread::Thread() {
+   this->body = wrapper;
+   this->arg = this;
+   this->myHandle = nullptr;
 }
 
-void *operator new[](size_t n)
-{
-	return mem_alloc(n);
+void Thread::finished() {
+    if(maxThreadsSemaphore != nullptr)
+        Thread::maxThreadsSemaphore->signal();
 }
 
-void operator delete(void *p) noexcept
-{
-	mem_free(p);
+void Thread::dispatch() {
+    thread_dispatch();
 }
 
-void operator delete[](void *p) noexcept
-{
-	mem_free(p);
+Thread::~Thread() {
+    if(Thread::maxThreadsSemaphore != nullptr)
+        Thread::maxThreadsSemaphore->signal();
+    delete this->myHandle;
 }
 
-Thread::Thread(void (*body)(void *), void *arg)
-{
-	thread_create(&this->myHandle, body, arg);
-}
-Thread::~Thread()
-{
-//	thread_exit();
-}
-int Thread::start()
-{
-	thread_dispatch();
-	return 0;
-}
-void Thread::join()
-{
-}
-void Thread::dispatch()
-{
-	thread_dispatch();
-}
-int Thread::sleep(time_t)
-{
-	return 0;
+int Thread::sleep(time_t time) {
+    return (int) time_sleep(time);
+
 }
 
-void Thread::wrapper(void *thread)
-{
-	((Thread*)thread)->run();
+void Thread::SetMaximumThreads(int num_of_threads) {
+    Thread::maxThreadsSemaphore = new Semaphore(num_of_threads);
+
 }
 
-Thread::Thread()
-{
-	this->arg = (uint64_t*)this;
-	thread_create(&this->myHandle, Thread::wrapper, arg);
+
+int Thread::start() {
+    if(Thread::maxThreadsSemaphore != nullptr)
+        Thread::maxThreadsSemaphore->wait();
+    return thread_create(&this->myHandle,body,arg);
 }
 
-Semaphore::Semaphore(unsigned init)
-{
-	sem_open(&this->myHandle, init);
-}
-Semaphore::~Semaphore()
-{
-	sem_close(this->myHandle);
-}
-int Semaphore::wait()
-{
-	return sem_wait(this->myHandle);
-}
-int Semaphore::signal()
-{
-	return sem_signal(this->myHandle);
+char Console::getc() {
+    return ::getc();
 }
 
-void PeriodicThread::terminate()
-{
-}
-PeriodicThread::PeriodicThread(time_t period)
-{
+void Console::putc(char c) {
+    ::putc(c);
 }
 
-char Console::getc()
-{
-	return getc();
-}
-void Console::putc(char c)
-{
-	putc(c);
+Semaphore::Semaphore(unsigned int init) {
+    sem_open(&this->myHandle,init);
 }
 
-void *mem_alloc(size_t size)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_MEM_ALLOC));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (void *)a0;
+Semaphore::~Semaphore() {
+    sem_close(this->myHandle);
 }
 
-int mem_free(void *p)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_MEM_FREE));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
+int Semaphore::wait() {
+    return sem_wait(this->myHandle);
 }
 
-int thread_create(thread_t *handle, void (*sdart_routine)(void *), void *arg)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_THREAD_CREATE));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
-}
-int thread_exit()
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_THREAD_EXIT));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
-}
-void thread_dispatch()
-{
-	asm volatile("li a7, %0;" : : ""(SYSCALL_THREAD_DISPATCH));
-	asm volatile("ecall;");
-}
-void thread_join(thread_t handle)
-{
-	asm volatile("li a7, %0;" : : ""(SYSCALL_THREAD_JOIN));
-	asm volatile("ecall;");
+int Semaphore::signal() {
+    return sem_signal(this->myHandle);
 }
 
-int sem_open(sem_t *handle, unsigned init)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_SEM_OPEN));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
-}
-int sem_close(sem_t handle)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_SEM_CLOSE));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
-}
-int sem_wait(sem_t id)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_SEM_WAIT));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
-}
-int sem_signal(sem_t id)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_SEM_SIGNAL));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
+int Semaphore::timedWait(time_t) {
+    return 0;
 }
 
-// time
-typedef unsigned long time_t;
-int time_sleep(time_t time)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_TIME_SLEEP));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (int)a0;
+int Semaphore::tryWait() {
+    return 0;
 }
 
-// io
-char getc(void)
-{
-	uint64_t a0;
-	asm volatile("li a7, %0;" : : ""(SYSCALL_GETC));
-	asm volatile("ecall;");
-	asm volatile("mv a0, %0;" : "=r"(a0));
-	return (char)a0;
+void PeriodicThread::terminate() {
+
 }
-void putc(char c)
-{
-	asm volatile("li a7, %0;" : : ""(SYSCALL_PUTC));
-	asm volatile("ecall;");
+
+PeriodicThread::PeriodicThread(time_t period) {
+
 }

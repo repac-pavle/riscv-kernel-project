@@ -8,7 +8,9 @@ KERNEL_IMG = kernel
 KERNEL_ASM = kernel.asm
 
 LIBS = \
-  ${DIR_LIBS}/hw.lib
+  ${DIR_LIBS}/hw.lib \
+  ${DIR_LIBS}/mem.lib \
+  ${DIR_LIBS}/console.lib
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -43,11 +45,11 @@ CFLAGS  = -Wall -Werror -Og -ggdb
 CFLAGS += -nostdlib
 CFLAGS += -march=rv64ima -mabi=lp64 -mcmodel=medany -mno-relax
 CFLAGS += -fno-omit-frame-pointer -ffreestanding -fno-common
-CFLAGS += -g -fsanitize=undefined
 CFLAGS += $(shell ${CC} -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 CFLAGS += ${DEBUG_FLAG}
 #CFLAGS += -I./${DIR_LIBS} -I./${DIR_INC}
 CFLAGS += -MMD -MP -MF"${@:%.o=%.d}"
+#CFLAGS += -g -fsanitize=undefined #BRISI OVO
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)
 ifneq ($(shell ${CC} -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
@@ -62,11 +64,11 @@ CXXFLAGS += -nostdlib -std=c++11
 CXXFLAGS += -march=rv64ima -mabi=lp64 -mcmodel=medany -mno-relax
 CXXFLAGS += -fno-omit-frame-pointer -ffreestanding -fno-common
 CXXFLAGS += -fno-rtti -fno-threadsafe-statics
-CXXFLAGS += -g -fsanitize=undefined
 #CXXFLAGS += -I./${DIR_LIBS} -I./${DIR_INC}
 CXXFLAGS += $(shell ${CXX} -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 CXXFLAGS += ${DEBUG_FLAG}
 CXXFLAGS += -MMD -MP -MF"${@:%.o=%.d}"
+#CXXFLAGS += -g -fsanitize=undefined #VNIMANIE VNIMANIE OBRISATI
 
 LDSCRIPT = kernel.ld
 LDFLAGS  = -z max-page-size=4096 --script ${LDSCRIPT}

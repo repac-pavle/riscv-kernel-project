@@ -17,9 +17,9 @@
  * Undefined behavior sanitizer runtime support.
  */
 
-#include "../h/types.h"
-#include "../h/stdio.h"
-#include "../h/console.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include "../h/print.hpp"
 
 struct ubsan_source_location {
 	const char *filename;
@@ -47,16 +47,21 @@ ubsan_abort(const struct ubsan_source_location *location, const char *violation)
 	if (!location || !location->filename)
 		location = &unknown_location;
 
-	printf("filename = %s; line = %d; column = %d; violation = %s;\n",
-	       location->filename, location->line, location->column, violation);
+	// printf("filename = %s; line = %d; column = %d; violation = %s;\n", location->filename, location->line, location->column, violation);
 
-	while (!is_empty(&stdout_buff)) {
-		uint8_t c = buff_get(&stdout_buff);
-		*(volatile uint8_t *)CONSOLE_TX_DATA = c;
-	}
+	printString("filename = ");
+    printString((char*)location->filename);
+    printString("; line = ");
+	printInteger(location->line);
+    printString("; column = ");
+    printInteger(location->column);
+    printString("; violation = ");
+    printString((char*)violation);
+    printString(";\n");
+
 
 	while (true) {
-		asm volatile("nop;");
+		__asm__ __volatile__ ("nop;");
 	}
 }
 
